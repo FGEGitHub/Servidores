@@ -1,0 +1,132 @@
+{
+  "racks": [
+       { "id": 4, "nombre": "Rack Servidores 1" },
+    { "id": 1, "nombre": "Rack Redes 3" },
+    { "id": 2, "nombre": "Rack Redes 2" },
+    { "id": 3, "nombre": "Rack Servidores 2" }
+ 
+  ],
+
+  "routers": [
+    { "id": 1, "nombre": "Forti Fibertel", "rack_id": 1, "tipo": "router" },
+    { "id": 2, "nombre": "Mikrotik 3011 Fibertel", "rack_id": 1, "tipo": "router" },
+    { "id": 3, "nombre": "Mikrotik Fibra 2004", "rack_id": 1, "tipo": "router" },
+    { "id": 4, "nombre": "Mikrotik Fibertel Back", "rack_id": 1, "tipo": "router" },
+    { "id": 5, "nombre": "Mikrotik Fibra 2004 Back", "rack_id": 1, "tipo": "router" }
+  ],
+
+  "fortinet": [
+    {
+      "id": 1,
+      "nombre": "Fortinet Gigared",
+      "rack_id": 2,
+      "tipo": "fortinet",
+      "puertos": {
+        "puerto1": null, "puerto2": null, "puerto3": null, "puerto4": null,
+        "puerto5": null, "puerto6": null, "puerto7": null, "puerto8": null,
+        "puerto9": null, "puerto10": null, "puerto11": null, "puerto12": null,
+        "puerto13": null, "puerto14": null, "puerto15": null, "puerto16": null
+      }
+    }
+  ],
+
+  "mikrotik": [
+    { "id": 1, "nombre": "Mikrotik Interno", "rack_id": 2, "tipo": "mikrotik", "puertos": {} },
+    { "id": 2, "nombre": "Mikrotik Intermedio", "rack_id": 2, "tipo": "mikrotik", "puertos": {} },
+    { "id": 3, "nombre": "Mikrotik Externo", "rack_id": 2, "tipo": "mikrotik", "puertos": {} },
+    { "id": 4, "nombre": "Mikrotik Fibra 2004", "rack_id": 2, "tipo": "mikrotik", "puertos": {} },
+    { "id": 5, "nombre": "Mikrotik 3011 Telco", "rack_id": 2, "tipo": "mikrotik", "puertos": {} }
+  ],
+
+  "ups": [
+    { "id": 1, "nombre": "UPS 1", "rack_id": 1, "tipo": "ups" },
+    { "id": 2, "nombre": "UPS 2", "rack_id": 1, "tipo": "ups" },
+    { "id": 3, "nombre": "UPS 3", "rack_id": 1, "tipo": "ups" },
+    { "id": 4, "nombre": "UPS 4", "rack_id": 1, "tipo": "ups" },
+    { "id": 5, "nombre": "UPS 5", "rack_id": 4, "tipo": "ups" },
+    { "id": 6, "nombre": "UPS 6", "rack_id": 4, "tipo": "ups" },
+    { "id": 7, "nombre": "UPS Chico", "rack_id": null, "tipo": "ups" }
+  ],
+
+  "servidores": [
+    { "id": 1, "nombre": "Homero", "rack_id": 3, "tipo": "servidor" },
+    { "id": 2, "nombre": "Bart", "rack_id": 3, "tipo": "servidor" },
+    { "id": 3, "nombre": "Lisa", "rack_id": 3, "tipo": "servidor" },
+    { "id": 4, "nombre": "Nodo4", "rack_id": 3, "tipo": "servidor" },
+    { "id": 5, "nombre": "HCD", "rack_id": 3, "tipo": "servidor" },
+    { "id": 6, "nombre": "Storwize", "rack_id": 3, "tipo": "servidor" },
+    { "id": 7, "nombre": "Barney", "rack_id": 3, "tipo": "servidor" },
+    { "id": 8, "nombre": "Milhouse", "rack_id": 3, "tipo": "servidor" },
+    { "id": 9, "nombre": "Telefonia", "rack_id": 3, "tipo": "servidor" },
+    { "id": 10, "nombre": "Lenny", "rack_id": 3, "tipo": "servidor" },
+    { "id": 11, "nombre": "Moe", "rack_id": 3, "tipo": "servidor" }
+  ],
+
+  "qnap": [
+    { "id": 1, "nombre": "QNAP Sistemas", "rack_id": 4, "tipo": "qnap" },
+    { "id": 2, "nombre": "QNAP Palacio", "rack_id": 4, "tipo": "qnap" },
+    { "id": 3, "nombre": "QNAP Digitalización", "rack_id": 4, "tipo": "qnap" }
+  ],
+
+  "cables": [
+
+   { "id": 1, "origen_id": 1, "destino_id": 1, "origen_tipo": "ups", "destino_tipo": "qnap", "color": "orange", "label": "UPS 1 → QNAP Sistemas" },
+
+
+  { "id": 2, "origen_id": 2, "destino_id": null, "origen_tipo": "ups", "destino_tipo": "router", "color": "yellow", "label": "UPS 2 → Canal Tensión 1" },
+
+ 
+  { "id": 3, "origen_id": 3, "destino_id": null, "origen_tipo": "ups", "destino_tipo": "router", "color": "yellow", "label": "UPS 3 → Canal Tensión 1" },
+  { "id": 4, "origen_id": 4, "destino_id": null, "origen_tipo": "ups", "destino_tipo": "router", "color": "yellow", "label": "UPS 4 → Canal Tensión 1" },
+
+
+  { "id": 5, "origen_id": 5, "destino_id": 1, "origen_tipo": "ups", "destino_tipo": "qnap", "color": "green", "label": "UPS 5 → QNAP Sistemas" },
+  { "id": 6, "origen_id": 5, "destino_id": 2, "origen_tipo": "ups", "destino_tipo": "qnap", "color": "green", "label": "UPS 5 → QNAP Palacio" },
+  { "id": 7, "origen_id": 5, "destino_id": 3, "origen_tipo": "ups", "destino_tipo": "qnap", "color": "green", "label": "UPS 5 → QNAP Digitalización" },
+
+
+  { "id": 8, "origen_id": 6, "destino_id": 4, "origen_tipo": "ups", "destino_tipo": "router", "color": "orange", "label": "UPS 6 → Mikrotik Back" },
+
+  { "id": 9, "origen_id": 6, "destino_id": null, "origen_tipo": "ups", "destino_tipo": "servidor", "color": "red", "label": "UPS 6 → Servidores Cámaras" },
+  { "id": 10, "origen_id": 6, "destino_id": null, "origen_tipo": "ups", "destino_tipo": "servidor", "color": "red", "label": "UPS 6 → Switch Cámaras" },
+  { "id": 11, "origen_id": 6, "destino_id": null, "origen_tipo": "ups", "destino_tipo": "servidor", "color": "red", "label": "UPS 6 → POE Cámaras" },
+
+
+  { "id": 12, "origen_id": 7, "destino_id": null, "origen_tipo": "ups", "destino_tipo": "servidor", "color": "orange", "label": "UPS 7 → Canal Tensión 3" },
+
+
+
+
+
+  { "id": 13, "origen_id": 3, "destino_id": null, "origen_tipo": "router", "destino_tipo": "ups", "color": "yellow", "label": "Salida General Sumar" },
+
+
+  { "id": 14, "origen_id": 3, "destino_id": null, "origen_tipo": "router", "destino_tipo": "ups", "color": "yellow", "label": "Unifi Patio" },
+
+
+  { "id": 15, "origen_id": 4, "destino_id": 6, "origen_tipo": "router", "destino_tipo": "ups", "color": "orange", "label": "Mikrotik Back → UPS 6" },
+
+
+
+
+  { "id": 16, "origen_id": 4, "destino_id": 1, "origen_tipo": "servidor", "destino_tipo": "servidor", "color": "red", "label": "Rack Servidores 1 → SW Cámaras" },
+  { "id": 17, "origen_id": 4, "destino_id": 2, "origen_tipo": "servidor", "destino_tipo": "servidor", "color": "red", "label": "Rack Servidores 1 → SW QNAP" },
+  { "id": 18, "origen_id": 4, "destino_id": 3, "origen_tipo": "servidor", "destino_tipo": "servidor", "color": "red", "label": "Rack Servidores 1 → NVR 1" },
+  { "id": 19, "origen_id": 4, "destino_id": 4, "origen_tipo": "servidor", "destino_tipo": "servidor", "color": "red", "label": "Rack Servidores 1 → Yamcha" },
+  { "id": 20, "origen_id": 4, "destino_id": 5, "origen_tipo": "servidor", "destino_tipo": "servidor", "color": "red", "label": "Rack Servidores 1 → Piccolo" },
+  { "id": 21, "origen_id": 4, "destino_id": 6, "origen_tipo": "servidor", "destino_tipo": "servidor", "color": "red", "label": "Rack Servidores 1 → Vegeta" },
+  { "id": 22, "origen_id": 4, "destino_id": 7, "origen_tipo": "servidor", "destino_tipo": "servidor", "color": "red", "label": "Rack Servidores 1 → POE Cámaras" },
+
+
+
+  {
+    "id": 23,
+    "origen_id": 1,
+    "destino_id": 2,
+    "origen_tipo": "fortinet",
+    "destino_tipo": "mikrotik",
+    "color": "cyan",
+    "label": "Fortinet Gigared → Mikrotik Intermedio"
+  }
+  ]
+}

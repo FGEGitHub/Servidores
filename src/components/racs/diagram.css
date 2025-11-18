@@ -1,0 +1,48 @@
+.diagram-svg {
+  background: #1a1a1a;
+}
+
+/* --- RACKS --- */
+.rack-rect {
+  fill: #222;
+  stroke: #666;
+  stroke-width: 3;
+}
+
+.rack-title {
+  fill: white;
+  font-size: 16px;
+  text-anchor: middle;
+  font-weight: bold;
+}
+
+.rack-slot {
+  fill: none;
+  stroke: #444;
+}
+
+/* --- EQUIPOS --- */
+.equipo-rect {
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.equipo-label {
+  fill: white;
+  font-size: 13px;
+  text-anchor: middle;
+}
+
+/* Colores por tipo */
+.equipo-router .equipo-rect { fill: #1976d2; }
+.equipo-fortinet .equipo-rect { fill: #e53935; }
+.equipo-mikrotik .equipo-rect { fill: #8e24aa; }
+.equipo-servidor .equipo-rect { fill: #43a047; }
+.equipo-ups .equipo-rect { fill: #ffb300; }
+.equipo-qnap .equipo-rect { fill: #009688; }
+
+/* --- CABLES --- */
+.cable {
+  stroke-width: 4;
+  fill: none;
+}
