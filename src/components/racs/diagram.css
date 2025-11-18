@@ -46,3 +46,42 @@
   stroke-width: 4;
   fill: none;
 }
+/* Panel dentro del SVG container */
+.conexiones-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 260px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  font-family: monospace;
+  border-radius: 10px;
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+/* SVG container posicionable */
+.diagram-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* MOBILE → panel abajo */
+@media (max-width: 900px) {
+  .diagram-wrapper {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .conexiones-panel {
+    position: relative;
+    width: 90%;
+    left: auto;
+    top: auto;
+    margin-top: 20px;
+    max-height: none;
+  }
+}

@@ -15,7 +15,7 @@ export default function RackDiagram() {
   } = data;
 
   const [hoverCable, setHoverCable] = useState(null);
-
+const [hoverInfo, setHoverInfo] = useState(null);
   // ---------------------------
   // POSICIÓN UPS SIEMPRE ABAJO
   // ---------------------------
@@ -258,166 +258,192 @@ function getCablesSameLane(cable, allCables) {
 
 
 
-  return (
-    <>
-      <svg width="1800" height="1200" className="diagram-svg">
-        {/* RACKS */}
-        {rackPositions.map((rack) => (
-          <g key={rack.id} className="rack">
+return (
+  <div className="diagram-wrapper">
+    {/* PANEL A LA IZQUIERDA (o abajo en mobile) */}
+    <div className="conexiones-panel">
+      <h3>Conexiones</h3>
+      <ul style={{ paddingLeft: 16 }}>
+        {[...cables]
+          .sort((a, b) => a.label.localeCompare(b.label))
+          .map((c) => (
+            <li key={c.id}>{c.label}</li>
+          ))}
+      </ul>
+    </div>
+
+    {/* SVG PRINCIPAL */}
+    <svg width="1800" height="1400" className="diagram-svg"   
+    onMouseMove={(e) => {
+    if (hoverInfo) {
+      let newX = e.clientX + 25;
+      let newY = e.clientY + 25;
+
+      const maxX = window.innerWidth - 250;
+
+      if (newX > maxX) newX = e.clientX - 250;
+
+      setHoverInfo({ x: newX, y: newY });
+    }
+  }}>
+      {/* RACKS */}
+      {racks.map(() => {}) /* tus racks ya los tenés, solo ilustración */}
+
+      {rackPositions.map((rack) => (
+        <g key={rack.id} className="rack">
+          <rect
+            className="rack-rect"
+            x={rack.posX}
+            y={rack.posY}
+            width={260}
+            height={rack.height}
+            rx="14"
+          />
+          <text
+            className="rack-title"
+            x={rack.posX + 130}
+            y={rack.posY + 25}
+          >
+            {rack.nombre}
+          </text>
+        </g>
+      ))}
+
+      {/* EQUIPOS */}
+      {equiposGlobal.map((eq) => {
+        const width = eq.tipo === "ups" ? 80 : 240;
+        const height = eq.tipo === "ups" ? 60 : 28;
+
+        return (
+          <g key={eq.id} className={`equipo equipo-${eq.tipo}`}>
             <rect
-          className="rack-rect"
-  x={rack.posX}
-  y={rack.posY}
-  width={260}
-  height={rack.height}
-  rx="14"
+              className="equipo-rect"
+              x={eq.x}
+              y={eq.y}
+              width={width}
+              height={height}
+              rx={eq.tipo === "ups" ? 10 : 4}
             />
-         <text
-  className="rack-title"
-  x={rack.posX + 130}
-  y={rack.posY + 25}
->
-  {rack.nombre}
-</text>
+
+            <text
+              className="equipo-label"
+              x={eq.x + width / 2}
+              y={eq.y + height / 2 + 4}
+            >
+              {eq.nombre}
+            </text>
           </g>
-        ))}
+        );
+      })}
 
-        {/* EQUIPOS */}
-        {equiposGlobal.map((eq) => {
-          const width = eq.tipo === "ups" ? 80 : 240;
-          const height = eq.tipo === "ups" ? 60 : 28;
+      {/* CABLES */}
+      {cables.map((cable) => {
+        const origenTipo = cable.origen_tipo?.toLowerCase();
+        const destinoTipo = cable.destino_tipo?.toLowerCase();
 
-          return (
-            <g key={eq.id} className={`equipo equipo-${eq.tipo}`}>
-              <rect
-                className="equipo-rect"
-                x={eq.x}
-                y={eq.y}
-                width={width}
-                height={height}
-                rx={eq.tipo === "ups" ? 10 : 4}
-              />
+        const origen = equiposGlobal.find(
+          (e) => e.tipo === origenTipo && e.id === cable.origen_id
+        );
+        const destino = equiposGlobal.find(
+          (e) => e.tipo === destinoTipo && e.id === cable.destino_id
+        );
 
-              <text
-                className="equipo-label"
-                x={eq.x + width / 2}
-                y={eq.y + height / 2 + 4}
-              >
-                {eq.nombre}
-              </text>
-            </g>
-          );
-        })}
+        if (!origen || !destino) return null;
 
-        {/* CABLES CURVOS CON TOOLTIP */}
-        {cables.map((cable) => {
-  const origenTipo = cable.origen_tipo?.toLowerCase();
-  const destinoTipo = cable.destino_tipo?.toLowerCase();
+        const offsetLateral = 18;
+        const offsetVertical = 8;
 
-  const origen = equiposGlobal.find(
-    (e) => e.tipo === origenTipo && e.id === cable.origen_id
-  );
-  const destino = equiposGlobal.find(
-    (e) => e.tipo === destinoTipo && e.id === cable.destino_id
-  );
+        const p1 = {
+          x: origen.isUPS ? origen.x + 80 : origen.x + 240,
+          y: origen.y + offsetVertical,
+        };
 
-  if (!origen || !destino) return null;
+        const p1_out = {
+          x: p1.x + offsetLateral,
+          y: p1.y,
+        };
 
-  const offsetLateral = 18;
-  const offsetVertical = 8;
+        const p2 = {
+          x: destino.isUPS ? destino.x : destino.x,
+          y: destino.y + offsetVertical,
+        };
 
-  const p1 = {
-    x: origen.isUPS ? origen.x + 80 : origen.x + 240,
-    y: origen.y + offsetVertical,
-  };
+        const p2_in = {
+          x: p2.x - offsetLateral,
+          y: p2.y,
+        };
 
-  const p1_out = {
-    x: p1.x + offsetLateral,
-    y: p1.y,
-  };
+        const safeY =
+          Math.max(p1.y + 80, p2.y + 80, 720) + cable.offset;
 
-  const p2 = {
-    x: destino.isUPS ? destino.x : destino.x,
-    y: destino.y + offsetVertical,
-  };
+        const path = `
+          M ${p1.x} ${p1.y}
+          L ${p1_out.x} ${p1_out.y}
+          L ${p1_out.x} ${safeY}
+          L ${p2_in.x} ${safeY}
+          L ${p2_in.x} ${p2_in.y}
+          L ${p2.x} ${p2.y}
+        `;
 
-  const p2_in = {
-    x: p2.x - offsetLateral,
-    y: p2.y,
-  };
+        const sameLane = getCablesSameLane(cable, cables);
 
- // const safeY = Math.max(p1.y + 80, p2.y + 80, 720);
-const safeY = Math.max(p1.y + 80, p2.y + 80, 720) + cable.offset;
-  const path = `
-    M ${p1.x} ${p1.y}
-    L ${p1_out.x} ${p1_out.y}
-    L ${p1_out.x} ${safeY}
-    L ${p2_in.x} ${safeY}
-    L ${p2_in.x} ${p2_in.y}
-    L ${p2.x} ${p2.y}
-  `;
+        return (
+          <g
+            key={cable.id}
+           onMouseEnter={(e) => {
+  setHoverCable({ main: cable, group: sameLane });
 
-  return (
-    <g
-      key={cable.id}
-    onMouseEnter={() => {
-  const grouped = getCablesSameLane(cable, cables);
-  setHoverCable({
-    main: cable,
-    group: grouped
+  setHoverInfo({
+    x: e.clientX + 20,
+    y: e.clientY + 20,
   });
 }}
+            onMouseLeave={() => {
+  setHoverCable(null);
+  setHoverInfo(null);
+}}
+          >
+            <path
+              d={path}
+              stroke={getCableColor(cable)}
+              strokeWidth="3"
+              fill="none"
+            />
+            <path
+              d={path}
+              stroke="transparent"
+              strokeWidth="10"
+              fill="none"
+            />
+          </g>
+        );
+      })}
 
-      onMouseLeave={() => setHoverCable(null)}
-    >
-      {/* Cable visible */}
-      <path
-        d={path}
-      stroke={getCableColor(cable)}
-        strokeWidth="3"
-        fill="none"
-        style={{
-          filter:
-            hoverCable?.id === cable.id
-              ? "drop-shadow(0px 0px 4px white)"
-              : "none",
-          cursor: "pointer",
-        }}
-      />
-
-      {/* Área invisible más grande para facilitar hover */}
-      <path
-        d={path}
-        stroke="transparent"
-        strokeWidth="10"
-        fill="none"
-      />
-    </g>
-  );
-})}
-      </svg>
-
-      {/* TOOLTIP FIJO */}
-    {hoverCable && (
+      {/* TOOLTIP SOBRE CABLE */}
+   
+    </svg>
+    {hoverCable && hoverInfo && (
   <div
     style={{
       position: "fixed",
-      left: 20,
-      top: 20,
-      padding: "8px 12px",
+      left: hoverInfo.x,
+      top: hoverInfo.y,
       background: "black",
       color: "white",
-      borderRadius: 8,
-      fontSize: 14,
+      padding: "10px 14px",
+      borderRadius: "8px",
+      zIndex: 9999,
       pointerEvents: "none",
       opacity: 0.9,
+      whiteSpace: "nowrap",
+      boxShadow: "0 0 10px rgba(255,255,255,0.4)",
     }}
   >
     {hoverCable.group.length > 1 ? (
       <>
-        <strong>{hoverCable.group.length} cables superpuestos:</strong>
+        <strong>{hoverCable.group.length} cables:</strong>
         <ul style={{ margin: 0, paddingLeft: 16 }}>
-          {hoverCable.group.map(c => (
+          {hoverCable.group.map((c) => (
             <li key={c.id}>{c.label}</li>
           ))}
         </ul>
@@ -427,19 +453,6 @@ const safeY = Math.max(p1.y + 80, p2.y + 80, 720) + cable.offset;
     )}
   </div>
 )}
-
-      <div
-        style={{ marginBottom: "30px", padding: "15px", fontFamily: "monospace" }}
-      >
-        <h3>Conexiones (ordenadas)</h3>
-        <ul>
-          {[...cables]
-            .sort((a, b) => a.label.localeCompare(b.label))
-            .map((c) => (
-              <li key={c.id}>{c.label}</li>
-            ))}
-        </ul>
-      </div>
-    </>
-  );
+  </div>
+);
 }
