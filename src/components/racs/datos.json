@@ -1,19 +1,21 @@
 {
   "racks": [
-       { "id": 4, "nombre": "Rack Servidores 1" ,"tamanio":"grande"},
-    { "id": 1, "nombre": "Rack Redes 3" ,"tamanio":"grande"},
-    { "id": 2, "nombre": "Rack Redes 4","tamanio":"grande" },
-    { "id": 3, "nombre": "Rack Servidores 2","tamanio":"grande" },
-   { "id": 5, "nombre": "Rack Redes 1","tamanio":"chico" },
-    { "id": 6, "nombre": "Rack Redes 2" ,"tamanio":"chico"}
+       { "id": 4, "nombre": "Rack Redes 3" ,"tamanio":"grande"},
+    { "id": 1, "nombre": "Rack Servidores 2" ,"tamanio":"grande"},
+    { "id": 2, "nombre": "Rack Servidores 1","tamanio":"grande" },
+        { "id": 6, "nombre": "Rack Redes 2" ,"tamanio":"chico"},
+   { "id": 5, "nombre": "Rack Redes 1","tamanio":"chico" }
+
   ],
 
   "routers": [
-    { "id": 1, "nombre": "Forti Fibertel", "rack_id": 1, "tipo": "router" },
-    { "id": 2, "nombre": "Mikrotik 3011 Fibertel", "rack_id": 1, "tipo": "router" },
-    { "id": 3, "nombre": "Mikrotik Fibra 2004", "rack_id": 1, "tipo": "router" },
-    { "id": 4, "nombre": "Mikrotik Fibertel Back", "rack_id": 1, "tipo": "router" },
-    { "id": 5, "nombre": "Mikrotik Fibra 2004 Back", "rack_id": 1, "tipo": "router" }
+    { "id": 1, "nombre": "Forti Fibertel", "rack_id": 4, "tipo": "router" },
+    { "id": 2, "nombre": "Mikrotik 3011 Fibertel", "rack_id": 4, "tipo": "router" },
+    { "id": 3, "nombre": "Mikrotik Fibra 2004", "rack_id": 4, "tipo": "router" },
+    { "id": 4, "nombre": "Mikrotik Fibertel Back", "rack_id": 4, "tipo": "router" },
+    { "id": 5, "nombre": "Mikrotik Fibra 2004 Back", "rack_id": 4, "tipo": "router" },
+        { "id": 6, "nombre": "Mikrotik Interno", "rack_id": 6, "tipo": "router" },
+    { "id": 7, "nombre": "Mikrotik Palacio", "rack_id": 6, "tipo": "router" }
   ],
 
   "fortinet": [
@@ -32,40 +34,40 @@
   ],
 
   "mikrotik": [
-    { "id": 1, "nombre": "Mikrotik Interno", "rack_id": 2, "tipo": "mikrotik", "puertos": {} },
-    { "id": 2, "nombre": "Mikrotik Intermedio", "rack_id": 2, "tipo": "mikrotik", "puertos": {} },
-    { "id": 3, "nombre": "Mikrotik Externo", "rack_id": 2, "tipo": "mikrotik", "puertos": {} },
-    { "id": 4, "nombre": "Mikrotik Fibra 2004", "rack_id": 2, "tipo": "mikrotik", "puertos": {} },
-    { "id": 5, "nombre": "Mikrotik 3011 Telco", "rack_id": 2, "tipo": "mikrotik", "puertos": {} }
+    { "id": 1, "nombre": "Mikrotik Interno", "rack_id": 5, "tipo": "mikrotik", "puertos": {} },
+    { "id": 2, "nombre": "Mikrotik Intermedio", "rack_id": 5, "tipo": "mikrotik", "puertos": {} },
+    { "id": 3, "nombre": "Mikrotik Externo", "rack_id": 5, "tipo": "mikrotik", "puertos": {} },
+    { "id": 4, "nombre": "Mikrotik Fibra 2004", "rack_id": 5, "tipo": "mikrotik", "puertos": {} },
+    { "id": 5, "nombre": "Mikrotik 3011 Telco", "rack_id": 5, "tipo": "mikrotik", "puertos": {} }
   ],
 
   "ups": [
-    { "id": 1, "nombre": "UPS 1", "rack_id": 1, "tipo": "ups" },
-    { "id": 2, "nombre": "UPS 2", "rack_id": 1, "tipo": "ups" },
-    { "id": 3, "nombre": "UPS 3", "rack_id": 1, "tipo": "ups" },
-    { "id": 4, "nombre": "UPS 4", "rack_id": 1, "tipo": "ups" },
+    { "id": 1, "nombre": "UPS 1", "rack_id": 4, "tipo": "ups" },
+    { "id": 2, "nombre": "UPS 2", "rack_id": 4, "tipo": "ups" },
+    { "id": 3, "nombre": "UPS 3", "rack_id": 4, "tipo": "ups" },
+    { "id": 4, "nombre": "UPS 4", "rack_id": 4, "tipo": "ups" },
     { "id": 5, "nombre": "UPS 5", "rack_id": 4, "tipo": "ups" },
     { "id": 6, "nombre": "UPS 6", "rack_id": 4, "tipo": "ups" },
     { "id": 7, "nombre": "UPS Chico", "rack_id": null, "tipo": "ups" }
   ],
 
   "servidores": [
-       { "id": 4, "nombre": "Nodo4", "rack_id": 3, "tipo": "servidor" },
-  { "id": 6, "nombre": "Storwize", "rack_id": 3, "tipo": "servidor" },
-    { "id": 2, "nombre": "Bart", "rack_id": 3, "tipo": "servidor" },
-      { "id": 10, "nombre": "Lenny", "rack_id": 3, "tipo": "servidor" },
-       { "id": 8, "nombre": "Milhouse", "rack_id": 3, "tipo": "servidor" },
-    { "id": 1, "nombre": "Homero", "rack_id": 3, "tipo": "servidor" },
+       { "id": 4, "nombre": "Nodo4", "rack_id": 1, "tipo": "servidor" },
+  { "id": 6, "nombre": "Storwize", "rack_id": 1, "tipo": "servidor" },
+    { "id": 2, "nombre": "Bart", "rack_id": 1, "tipo": "servidor" },
+      { "id": 10, "nombre": "Lenny", "rack_id": 1, "tipo": "servidor" },
+       { "id": 8, "nombre": "Milhouse", "rack_id": 1, "tipo": "servidor" },
+    { "id": 1, "nombre": "Homero", "rack_id": 1, "tipo": "servidor" },
 
-    { "id": 3, "nombre": "Lisa", "rack_id": 3, "tipo": "servidor" },
+    { "id": 3, "nombre": "Lisa", "rack_id": 1, "tipo": "servidor" },
  
-    { "id": 5, "nombre": "HCD", "rack_id": 3, "tipo": "servidor" },
+    { "id": 5, "nombre": "HCD", "rack_id": 1, "tipo": "servidor" },
   
-    { "id": 7, "nombre": "Barney", "rack_id": 3, "tipo": "servidor" },
+    { "id": 7, "nombre": "Barney", "rack_id": 1, "tipo": "servidor" },
    
-    { "id": 9, "nombre": "Telefonia", "rack_id": 3, "tipo": "servidor" },
+    { "id": 9, "nombre": "Telefonia", "rack_id": 1, "tipo": "servidor" },
   
-    { "id": 11, "nombre": "Moe", "rack_id": 3, "tipo": "servidor" }
+    { "id": 11, "nombre": "Moe", "rack_id": 1, "tipo": "servidor" }
   ],
 
   "qnap": [
