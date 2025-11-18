@@ -12,6 +12,7 @@ export default function RackDiagram() {
     servidores,
     qnap,
     cables,
+    linea_tension
   } = data;
 
   const [hoverCable, setHoverCable] = useState(null);
@@ -41,14 +42,15 @@ function getUpsCoords(upsItem, index, rack) {
   // ---------------------------
   // Equipos ordenados por slot
   // ---------------------------
-  const equipos = [
-    ...routers,
-    ...fortinet,
-    ...mikrotik,
-    ...ups,
-    ...servidores,
-    ...qnap,
-  ]
+const equipos = [
+  ...routers,
+  ...fortinet,
+  ...mikrotik,
+  ...ups,
+  ...servidores,
+  ...qnap,
+  ...linea_tension   // ⬅️ nuevo
+]
     .filter((e) => e.rack_id !== null)
     .map((e) => ({ ...e }));
 
@@ -224,16 +226,19 @@ function getCableColor(cable) {
   const o = cable.origen_tipo?.toLowerCase();
   const d = cable.destino_tipo?.toLowerCase();
 
-  // PRIORIDAD 1 — UPS (naranja)
+  // PRIORIDAD 1 — Línea de tensión → NEGRO
+  if (o === "linea_tension" || d === "linea_tension") return "#cd840eff";
+
+  // PRIORIDAD 2 — UPS → NARANJA
   if (o === "ups" || d === "ups") return "#ff9900";
 
-  // PRIORIDAD 2 — QNAP (cian)
+  // PRIORIDAD 3 — QNAP → CIAN
   if (o === "qnap" || d === "qnap") return "#00c3ff";
 
-  // Resto como quieras (si el JSON trae un color lo usás)
+  // Si el cable trae un color específico
   if (cable.color) return cable.color;
 
-  // Fallback blanco
+  // Fallback → blanco
   return "#ffffff";
 }
 
@@ -408,12 +413,14 @@ return (
               stroke={getCableColor(cable)}
               strokeWidth="3"
               fill="none"
+              className={hoverCable?.main?.id === cable.id ? "cable-hover" : ""}
             />
             <path
               d={path}
               stroke="transparent"
               strokeWidth="10"
               fill="none"
+              className={hoverCable?.main?.id === cable.id ? "cable-hover" : ""}
             />
           </g>
         );

@@ -73,7 +73,29 @@
     { "id": 2, "nombre": "QNAP Palacio", "rack_id": 4, "tipo": "qnap" },
     { "id": 3, "nombre": "QNAP Digitalización", "rack_id": 4, "tipo": "qnap" }
   ],
-
+"linea_tension": [
+  {
+    "id": 1,
+    "nombre": "Línea de Tensión 1",
+    "rack_id": 5,
+    "tipo": "linea_tension",
+    "altura": 1
+  },
+  {
+    "id": 2,
+    "nombre": "Línea de Tensión 2",
+    "rack_id": 5,
+    "tipo": "linea_tension",
+    "altura": 1
+  },
+  {
+    "id": 3,
+    "nombre": "Línea de Tensión 1",
+    "rack_id": 6,
+    "tipo": "linea_tension",
+    "altura": 1
+  }
+],
   "cables": [
 
    { "id": 1, "origen_id": 1, "destino_id": 1, "origen_tipo": "ups", "destino_tipo": "qnap", "color": "orange", "label": "UPS 1 → QNAP Sistemas" },
@@ -133,6 +155,35 @@
     "destino_tipo": "mikrotik",
     "color": "cyan",
     "label": "Fortinet Gigared → Mikrotik Intermedio"
-  }
+  },
+  {
+  "id": 24,
+  "origen_id": 1,
+  "destino_id": 1,
+  "origen_tipo": "linea_tension",
+  "destino_tipo": "ups",
+  "color": "black",
+  "label": "Línea de Tensión 1 → UPS 1"
+},
+{
+  "id": 25,
+  "origen_id": 2,
+  "destino_id": 1,
+  "origen_tipo": "linea_tension",
+  "destino_tipo": "linea_tension",
+  "color": "black",
+  "label": "Línea de Tensión 2 → Línea de Tensión 1"
+},
+{
+  "id": 26,
+  "origen_id": 1,
+  "destino_id": 3,
+  "origen_tipo": "linea_tension",
+  "destino_tipo": "linea_tension",
+  "color": "black",
+  "label": "Línea de Tensión 1 (Rack Redes 1) → Línea de Tensión 1 (Rack Redes 2)"
+}
+
+  
   ]
 }

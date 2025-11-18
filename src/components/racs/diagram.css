@@ -46,6 +46,10 @@
   stroke-width: 4;
   fill: none;
 }
+.cable-hover {
+  filter: drop-shadow(0 0 6px #fff) brightness(2);
+  stroke-width: 4 !important;
+}
 /* Panel dentro del SVG container */
 .conexiones-panel {
   position: absolute;
