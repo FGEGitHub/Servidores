@@ -23,20 +23,37 @@ const [hoverInfo, setHoverInfo] = useState(null);
 function getUpsCoords(upsItem, index, rack) {
   const bottomPadding = 20;
 
+  const upsWidth = 80;
   const upsHeight = 60;
+
+  const separacionHorizontal = 20;
   const separacionVertical = 10;
 
-  const yBase =
+  // --- 2 columnas ---
+  const columna = index % 2;   // 0 o 1
+  const fila = Math.floor(index / 2);
+
+  // --- ancho del rack para centrar ---
+  const rackInnerWidth = 260 - 40; // margen 20 a cada lado
+  const totalWidthUPS = upsWidth * 2 + separacionHorizontal;
+
+  const offsetX = (rackInnerWidth - totalWidthUPS) / 2;
+
+  const x =
+    rack.posX +
+    20 +                    // margen izquierdo interno
+    offsetX +              // centra las dos columnas
+    columna * (upsWidth + separacionHorizontal);
+
+  // --- vertical: UPS siempre al fondo del rack ---
+  const y =
     rack.posY +
     rack.height -
     bottomPadding -
     upsHeight -
-    index * (upsHeight + separacionVertical);
+    fila * (upsHeight + separacionVertical);
 
-  return {
-    x: rack.posX + 20,
-    y: yBase,
-  };
+  return { x, y };
 }
 
   // ---------------------------
