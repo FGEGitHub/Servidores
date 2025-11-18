@@ -1,10 +1,11 @@
 {
   "racks": [
-       { "id": 4, "nombre": "Rack Servidores 1" },
-    { "id": 1, "nombre": "Rack Redes 3" },
-    { "id": 2, "nombre": "Rack Redes 2" },
-    { "id": 3, "nombre": "Rack Servidores 2" }
- 
+       { "id": 4, "nombre": "Rack Servidores 1" ,"tamanio":"grande"},
+    { "id": 1, "nombre": "Rack Redes 3" ,"tamanio":"grande"},
+    { "id": 2, "nombre": "Rack Redes 4","tamanio":"grande" },
+    { "id": 3, "nombre": "Rack Servidores 2","tamanio":"grande" },
+   { "id": 5, "nombre": "Rack Redes 1","tamanio":"chico" },
+    { "id": 6, "nombre": "Rack Redes 2" ,"tamanio":"chico"}
   ],
 
   "routers": [
@@ -49,16 +50,21 @@
   ],
 
   "servidores": [
-    { "id": 1, "nombre": "Homero", "rack_id": 3, "tipo": "servidor" },
+       { "id": 4, "nombre": "Nodo4", "rack_id": 3, "tipo": "servidor" },
+  { "id": 6, "nombre": "Storwize", "rack_id": 3, "tipo": "servidor" },
     { "id": 2, "nombre": "Bart", "rack_id": 3, "tipo": "servidor" },
+      { "id": 10, "nombre": "Lenny", "rack_id": 3, "tipo": "servidor" },
+       { "id": 8, "nombre": "Milhouse", "rack_id": 3, "tipo": "servidor" },
+    { "id": 1, "nombre": "Homero", "rack_id": 3, "tipo": "servidor" },
+
     { "id": 3, "nombre": "Lisa", "rack_id": 3, "tipo": "servidor" },
-    { "id": 4, "nombre": "Nodo4", "rack_id": 3, "tipo": "servidor" },
+ 
     { "id": 5, "nombre": "HCD", "rack_id": 3, "tipo": "servidor" },
-    { "id": 6, "nombre": "Storwize", "rack_id": 3, "tipo": "servidor" },
+  
     { "id": 7, "nombre": "Barney", "rack_id": 3, "tipo": "servidor" },
-    { "id": 8, "nombre": "Milhouse", "rack_id": 3, "tipo": "servidor" },
+   
     { "id": 9, "nombre": "Telefonia", "rack_id": 3, "tipo": "servidor" },
-    { "id": 10, "nombre": "Lenny", "rack_id": 3, "tipo": "servidor" },
+  
     { "id": 11, "nombre": "Moe", "rack_id": 3, "tipo": "servidor" }
   ],
 

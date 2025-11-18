@@ -19,28 +19,24 @@ export default function RackDiagram() {
   // ---------------------------
   // POSICIÓN UPS SIEMPRE ABAJO
   // ---------------------------
-  function getUpsCoords(upsItem, index, rack) {
-    const rackHeight = 600;
-    const bottomPadding = 20;
+function getUpsCoords(upsItem, index, rack) {
+  const bottomPadding = 20;
 
-    const columna = index % 2;
-    const fila = Math.floor(index / 2);
+  const upsHeight = 60;
+  const separacionVertical = 10;
 
-    const upsHeight = 60;
-    const separacionVertical = 10;
+  const yBase =
+    rack.posY +
+    rack.height -
+    bottomPadding -
+    upsHeight -
+    index * (upsHeight + separacionVertical);
 
-    const yBase =
-      rack.posY +
-      rackHeight -
-      bottomPadding -
-      upsHeight -
-      fila * (upsHeight + separacionVertical);
-
-    return {
-      x: rack.posX + 20 + columna * 130,
-      y: yBase,
-    };
-  }
+  return {
+    x: rack.posX + 20,
+    y: yBase,
+  };
+}
 
   // ---------------------------
   // Equipos ordenados por slot
@@ -70,22 +66,66 @@ export default function RackDiagram() {
   // ---------------------------
   // Rack positions
   // ---------------------------
-  const rackPositions = racks.map((rack, index) => ({
-    ...rack,
-    posX: 80 + index * 350,
-    posY: 40,
-  }));
+ const racksPerRow = 3;     // <= 3 racks por fila
+const rackWidth = 350;     // separación horizontal
+const rackHeight = 700;    // separación vertical (rack + espacio)
+const RACK_WIDTH = 260;
+const RACK_BIG_HEIGHT = 600;
+const RACK_SMALL_HEIGHT = RACK_BIG_HEIGHT * 0.4;
+
+const COLS = 3;           // número fijo de columnas
+const GAP_X = 120;        // separación horizontal
+const GAP_Y = 80;         // separación vertical
+
+// agrupar racks en filas de 3
+const rackRows = [];
+for (let i = 0; i < racks.length; i += COLS) {
+  rackRows.push(racks.slice(i, i + COLS));
+}
+
+const rackPositions = [];
+
+rackRows.forEach((row, rowIndex) => {
+  // ancho total ocupado por la fila
+  const rowWidth =
+    row.length * RACK_WIDTH + (row.length - 1) * GAP_X;
+
+  // centrar la fila en un SVG de 1800px
+  const offsetX = (1800 - rowWidth) / 2;
+
+  row.forEach((rack, colIndex) => {
+    const x = offsetX + colIndex * (RACK_WIDTH + GAP_X);
+
+    // tamaño dinámico
+    const height =
+      rack.tamanio === "chico"
+        ? RACK_SMALL_HEIGHT
+        : RACK_BIG_HEIGHT;
+
+    // posición vertical
+    const y = 40 + rowIndex * (RACK_BIG_HEIGHT + GAP_Y);
+
+    rackPositions.push({
+      ...rack,
+      posX: x,
+      posY: y,
+      height,
+    });
+  });
+});
+
 
   // ---------------------------
   // Equipos normales
   // ---------------------------
-  const getCoords = (equipo) => {
-    const rack = rackPositions.find((r) => r.id === equipo.rack_id);
-    return {
-      x: rack.posX + 20,
-      y: rack.posY + 40 + (equipo.slot - 1) * 32,
-    };
+const getCoords = (equipo) => {
+  const rack = rackPositions.find((r) => r.id === equipo.rack_id);
+
+  return {
+    x: rack.posX + 20,
+    y: rack.posY + 40 + (equipo.slot - 1) * 32,
   };
+};
 
   // ---------------------------
   // UPS con posiciones reales
@@ -131,7 +171,28 @@ export default function RackDiagram() {
     cableGroups[key].push(c);
   });
 
-  const cableOffsets = {};
+ const cableOffsets = {};
+
+cables.forEach((cable) => {
+  const key = `${cable.origen_tipo}-${cable.origen_id}`;
+
+  if (!cableOffsets[key]) {
+    cableOffsets[key] = {};
+  }
+
+  const color = getCableColor(cable);;
+
+  // Si el color ya tiene offset asignado, se usa el mismo (se superponen)
+  if (cableOffsets[key][color] !== undefined) {
+    cable.offset = cableOffsets[key][color];
+  } else {
+    // Nuevo color → siguiente carril
+    const countColors = Object.keys(cableOffsets[key]).length;
+    const newOffset = countColors * 15; // distancia entre colores
+    cableOffsets[key][color] = newOffset;
+    cable.offset = newOffset;
+  }
+});
   Object.entries(cableGroups).forEach(([key, group]) => {
     group.forEach((cable, index) => {
       cableOffsets[cable.id] = index * 20;
@@ -152,6 +213,50 @@ export default function RackDiagram() {
       C ${midX2} ${safeY}, ${midX2} ${p2.y}, ${p2.x} ${p2.y}
     `;
   };
+function getCableColor(cable) {
+  const o = cable.origen_tipo?.toLowerCase();
+  const d = cable.destino_tipo?.toLowerCase();
+  const key = `${o}-${d}`;
+
+  return cableColorsMap[key] || cableColorsMap.default;
+}
+function getCableColor(cable) {
+  const o = cable.origen_tipo?.toLowerCase();
+  const d = cable.destino_tipo?.toLowerCase();
+
+  // PRIORIDAD 1 — UPS (naranja)
+  if (o === "ups" || d === "ups") return "#ff9900";
+
+  // PRIORIDAD 2 — QNAP (cian)
+  if (o === "qnap" || d === "qnap") return "#00c3ff";
+
+  // Resto como quieras (si el JSON trae un color lo usás)
+  if (cable.color) return cable.color;
+
+  // Fallback blanco
+  return "#ffffff";
+}
+
+
+
+
+function getCablesSameLane(cable, allCables) {
+  return allCables.filter(c => {
+    // mismo equipo de origen
+    const sameOrigin = 
+      c.origen_tipo === cable.origen_tipo &&
+      c.origen_id === cable.origen_id;
+
+    // mismo carril (offset igual)
+    const sameOffset = c.offset === cable.offset;
+
+    return sameOrigin && sameOffset;
+  });
+}
+
+
+
+
 
   return (
     <>
@@ -160,20 +265,20 @@ export default function RackDiagram() {
         {rackPositions.map((rack) => (
           <g key={rack.id} className="rack">
             <rect
-              className="rack-rect"
-              x={rack.posX}
-              y={rack.posY}
-              width="260"
-              height="600"
-              rx="14"
+          className="rack-rect"
+  x={rack.posX}
+  y={rack.posY}
+  width={260}
+  height={rack.height}
+  rx="14"
             />
-            <text
-              className="rack-title"
-              x={rack.posX + 130}
-              y={rack.posY + 25}
-            >
-              {rack.nombre}
-            </text>
+         <text
+  className="rack-title"
+  x={rack.posX + 130}
+  y={rack.posY + 25}
+>
+  {rack.nombre}
+</text>
           </g>
         ))}
 
@@ -241,8 +346,8 @@ export default function RackDiagram() {
     y: p2.y,
   };
 
-  const safeY = Math.max(p1.y + 80, p2.y + 80, 720);
-
+ // const safeY = Math.max(p1.y + 80, p2.y + 80, 720);
+const safeY = Math.max(p1.y + 80, p2.y + 80, 720) + cable.offset;
   const path = `
     M ${p1.x} ${p1.y}
     L ${p1_out.x} ${p1_out.y}
@@ -255,13 +360,20 @@ export default function RackDiagram() {
   return (
     <g
       key={cable.id}
-      onMouseEnter={() => setHoverCable(cable)}
+    onMouseEnter={() => {
+  const grouped = getCablesSameLane(cable, cables);
+  setHoverCable({
+    main: cable,
+    group: grouped
+  });
+}}
+
       onMouseLeave={() => setHoverCable(null)}
     >
       {/* Cable visible */}
       <path
         d={path}
-        stroke={cable.color}
+      stroke={getCableColor(cable)}
         strokeWidth="3"
         fill="none"
         style={{
@@ -286,24 +398,35 @@ export default function RackDiagram() {
       </svg>
 
       {/* TOOLTIP FIJO */}
-      {hoverCable && (
-        <div
-          style={{
-            position: "fixed",
-            left: 20,
-            top: 20,
-            padding: "8px 12px",
-            background: "black",
-            color: "white",
-            borderRadius: 8,
-            fontSize: 14,
-            pointerEvents: "none",
-            opacity: 0.9,
-          }}
-        >
-          {hoverCable.label}
-        </div>
-      )}
+    {hoverCable && (
+  <div
+    style={{
+      position: "fixed",
+      left: 20,
+      top: 20,
+      padding: "8px 12px",
+      background: "black",
+      color: "white",
+      borderRadius: 8,
+      fontSize: 14,
+      pointerEvents: "none",
+      opacity: 0.9,
+    }}
+  >
+    {hoverCable.group.length > 1 ? (
+      <>
+        <strong>{hoverCable.group.length} cables superpuestos:</strong>
+        <ul style={{ margin: 0, paddingLeft: 16 }}>
+          {hoverCable.group.map(c => (
+            <li key={c.id}>{c.label}</li>
+          ))}
+        </ul>
+      </>
+    ) : (
+      hoverCable.main.label
+    )}
+  </div>
+)}
 
       <div
         style={{ marginBottom: "30px", padding: "15px", fontFamily: "monospace" }}
