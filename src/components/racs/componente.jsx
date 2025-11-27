@@ -8,75 +8,85 @@ export default function RackDiagram() {
     routers,
     fortinet,
     mikrotik,
-     servidores,
+    servidores,
     ups,
-   sw,
+    sw,
     qnap,
     cables,
     linea_tension
   } = data;
 
   const [hoverCable, setHoverCable] = useState(null);
-const [hoverInfo, setHoverInfo] = useState(null);
-  // ---------------------------
-  // POSICIÓN UPS SIEMPRE ABAJO
-  // ---------------------------
-function getUpsCoords(upsItem, index, rack) {
-  const bottomPadding = 20;
-
-  const upsWidth = 80;
-  const upsHeight = 60;
-
-  const separacionHorizontal = 20;
-  const separacionVertical = 10;
-
-  // --- 2 columnas ---
-  const columna = index % 2;   // 0 o 1
-  const fila = Math.floor(index / 2);
-
-  // --- ancho del rack para centrar ---
-  const rackInnerWidth = 260 - 40; // margen 20 a cada lado
-  const totalWidthUPS = upsWidth * 2 + separacionHorizontal;
-
-  const offsetX = (rackInnerWidth - totalWidthUPS) / 2;
-
-  const x =
-    rack.posX +
-    20 +                    // margen izquierdo interno
-    offsetX +              // centra las dos columnas
-    columna * (upsWidth + separacionHorizontal);
-
-  // --- vertical: UPS siempre al fondo del rack ---
-  const y =
-    rack.posY +
-    rack.height -
-    bottomPadding -
-    upsHeight -
-    fila * (upsHeight + separacionVertical);
-
-  return { x, y };
-}
+  const [hoverInfo, setHoverInfo] = useState(null);
+const [selectedDevice, setSelectedDevice] = useState(null);
 
   // ---------------------------
-  // Equipos ordenados por slot
+  // POSICIÓN UPS — SIEMPRE ABAJO
   // ---------------------------
-const equipos = [
-  ...sw,
-  ...routers,
-  ...fortinet,
-  ...mikrotik,
+  function getUpsCoords(upsItem, index, rack) {
+    const bottomPadding = 20;
+    const upsWidth = 80;
+    const upsHeight = 60;
+
+    const sepX = 20;
+    const sepY = 10;
+
+    const columna = index % 2;
+    const fila = Math.floor(index / 2);
+
+    const rackInnerWidth = 260 - 40;
+    const totalWidthUPS = upsWidth * 2 + sepX;
+
+    const offsetX = (rackInnerWidth - totalWidthUPS) / 2;
+
+    const x =
+      rack.posX +
+      20 +
+      offsetX +
+      columna * (upsWidth + sepX);
+
+    const y =
+      rack.posY +
+      rack.height -
+      bottomPadding -
+      upsHeight -
+      fila * (upsHeight + sepY);
+
+    return { x, y };
+  }
+
+  // ---------------------------
+  // Equipos (SW agregado)
+  // ---------------------------
+  const equipos = [
+    ...routers,
+    ...fortinet,
+    ...mikrotik,
     ...servidores,
-  ...ups,
-  ...qnap,
-  ...linea_tension   // 
-]
+    ...sw,               // ⬅️ SW agregado
+    ...ups,
+    ...qnap,
+    ...linea_tension
+  ]
     .filter((e) => e.rack_id !== null)
     .map((e) => ({ ...e }));
 
+  // ---------------------------
+  // Asignar SLOT a equipos normales
+  // ---------------------------
   const equiposConSlot = racks.flatMap((rack) => {
     const eqRack = equipos
       .filter((e) => e.rack_id === rack.id)
-      .sort((a, b) => (a.prioridad ?? 100) - (b.prioridad ?? 100));
+      // -------- Ahora priorizamos por campo "orden" si existe, luego prioridad, luego id
+      .sort((a, b) => {
+        const ao = a.orden ?? 9999;
+        const bo = b.orden ?? 9999;
+        if (ao !== bo) return ao - bo;
+        const ap = a.prioridad ?? 100;
+        const bp = b.prioridad ?? 100;
+        if (ap !== bp) return ap - bp;
+        return (a.id || 0) - (b.id || 0);
+      });
 
     return eqRack.map((e, index) => ({
       ...e,
@@ -85,71 +95,63 @@ const equipos = [
   });
 
   // ---------------------------
-  // Rack positions
+  // RACK POSITIONS
   // ---------------------------
- const racksPerRow = 3;     // <= 3 racks por fila
-const rackWidth = 350;     // separación horizontal
-const rackHeight = 700;    // separación vertical (rack + espacio)
-const RACK_WIDTH = 260;
-const RACK_BIG_HEIGHT = 600;
-const RACK_SMALL_HEIGHT = RACK_BIG_HEIGHT * 0.4;
+  const RACK_WIDTH = 260;
+  const RACK_BIG_HEIGHT = 650;
+  const RACK_SMALL_HEIGHT = RACK_BIG_HEIGHT * 0.4;
 
-const COLS = 3;           // número fijo de columnas
-const GAP_X = 120;        // separación horizontal
-const GAP_Y = 80;         // separación vertical
+  const COLS = 3;
+  const GAP_X = 120;
+  const GAP_Y = 80;
 
-// agrupar racks en filas de 3
-const rackRows = [];
-for (let i = 0; i < racks.length; i += COLS) {
-  rackRows.push(racks.slice(i, i + COLS));
-}
+  const rackRows = [];
+  for (let i = 0; i < racks.length; i += COLS) {
+    rackRows.push(racks.slice(i, i + COLS));
+  }
 
-const rackPositions = [];
+  const rackPositions = [];
 
-rackRows.forEach((row, rowIndex) => {
-  // ancho total ocupado por la fila
-  const rowWidth =
-    row.length * RACK_WIDTH + (row.length - 1) * GAP_X;
+  rackRows.forEach((row, rowIndex) => {
+    const rowWidth =
+      row.length * RACK_WIDTH +
+      (row.length - 1) * GAP_X;
 
-  // centrar la fila en un SVG de 1800px
-  const offsetX = (1800 - rowWidth) / 2;
+    const offsetX = (1800 - rowWidth) / 2;
 
-  row.forEach((rack, colIndex) => {
-    const x = offsetX + colIndex * (RACK_WIDTH + GAP_X);
+    row.forEach((rack, colIndex) => {
+      const x = offsetX + colIndex * (RACK_WIDTH + GAP_X);
 
-    // tamaño dinámico
-    const height =
-      rack.tamanio === "chico"
-        ? RACK_SMALL_HEIGHT
-        : RACK_BIG_HEIGHT;
+      const height =
+        rack.tamanio === "chico"
+          ? RACK_SMALL_HEIGHT
+          : RACK_BIG_HEIGHT;
 
-    // posición vertical
-    const y = 40 + rowIndex * (RACK_BIG_HEIGHT + GAP_Y);
+      const y = 40 + rowIndex * (RACK_BIG_HEIGHT + GAP_Y);
 
-    rackPositions.push({
-      ...rack,
-      posX: x,
-      posY: y,
-      height,
+      rackPositions.push({
+        ...rack,
+        posX: x,
+        posY: y,
+        height,
+      });
     });
   });
-});
-
 
   // ---------------------------
-  // Equipos normales
+  // Coordenadas de equipos NO UPS
   // ---------------------------
-const getCoords = (equipo) => {
-  const rack = rackPositions.find((r) => r.id === equipo.rack_id);
-
-  return {
-    x: rack.posX + 20,
-    y: rack.posY + 40 + (equipo.slot - 1) * 32,
+  const getCoords = (equipo) => {
+    const rack = rackPositions.find((r) => r.id === equipo.rack_id);
+    if (!rack) return { x: 0, y: 0 };
+    return {
+      x: rack.posX + 20,
+      y: rack.posY + 40 + (equipo.slot - 1) * 32,
+    };
   };
-};
 
   // ---------------------------
-  // UPS con posiciones reales
+  // Coordenadas UPS
   // ---------------------------
   const upsPositions = rackPositions.flatMap((rack) => {
     const upsDeRack = equiposConSlot.filter(
@@ -160,7 +162,6 @@ const getCoords = (equipo) => {
       const { x, y } = getUpsCoords(upsItem, index, rack);
       return {
         ...upsItem,
-        tipo: "ups",
         x,
         y,
         isUPS: true,
@@ -169,7 +170,7 @@ const getCoords = (equipo) => {
   });
 
   // ---------------------------
-  // Equipos globales
+  // Equipos finales
   // ---------------------------
   const equiposGlobal = [
     ...equiposConSlot
@@ -183,7 +184,22 @@ const getCoords = (equipo) => {
   ];
 
   // ============================================================
-  // AGRUPAR CABLES POR ORIGEN Y ASIGNAR OFFSET
+  // CABLE COLORS
+  // ============================================================
+  function getCableColor(cable) {
+    const o = cable.origen_tipo?.toLowerCase();
+    const d = cable.destino_tipo?.toLowerCase();
+
+    if (o === "linea_tension" || d === "linea_tension") return "#cd840eff";
+    if (o === "ups" || d === "ups") return "#ff9900";
+    if (o === "qnap" || d === "qnap") return "#00c3ff";
+    if (o === "sw" || d === "sw") return "#00ff62";
+
+    return cable.color || "#ffffff";
+  }
+
+  // ============================================================
+  // OFFSET DE CABLES (existente: por color/origen)
   // ============================================================
   const cableGroups = {};
   cables.forEach((c) => {
@@ -192,302 +208,320 @@ const getCoords = (equipo) => {
     cableGroups[key].push(c);
   });
 
- const cableOffsets = {};
+  const cableOffsets = {};
 
-cables.forEach((cable) => {
-  const key = `${cable.origen_tipo}-${cable.origen_id}`;
+  cables.forEach((cable) => {
+    const key = `${cable.origen_tipo}-${cable.origen_id}`;
+    if (!cableOffsets[key]) cableOffsets[key] = {};
 
-  if (!cableOffsets[key]) {
-    cableOffsets[key] = {};
-  }
+    const color = getCableColor(cable);
 
-  const color = getCableColor(cable);;
-
-  // Si el color ya tiene offset asignado, se usa el mismo (se superponen)
-  if (cableOffsets[key][color] !== undefined) {
-    cable.offset = cableOffsets[key][color];
-  } else {
-    // Nuevo color → siguiente carril
-    const countColors = Object.keys(cableOffsets[key]).length;
-    const newOffset = countColors * 15; // distancia entre colores
-    cableOffsets[key][color] = newOffset;
-    cable.offset = newOffset;
-  }
-});
-  Object.entries(cableGroups).forEach(([key, group]) => {
-    group.forEach((cable, index) => {
-      cableOffsets[cable.id] = index * 20;
-    });
-  });
-
-  // ============================================================
-  // FUNCIÓN DE CURVA (BÉZIER SUAVE)
-  // ============================================================
-  const curvedPath = (p1, p2, offsetX, safeY) => {
-    const midX1 = p1.x + offsetX;
-    const midX2 = p2.x - offsetX;
-
-    return `
-      M ${p1.x} ${p1.y}
-      C ${midX1} ${p1.y}, ${midX1} ${safeY}, ${midX1} ${safeY}
-      C ${midX1} ${safeY}, ${midX2} ${safeY}, ${midX2} ${safeY}
-      C ${midX2} ${safeY}, ${midX2} ${p2.y}, ${p2.x} ${p2.y}
-    `;
-  };
-function getCableColor(cable) {
-  const o = cable.origen_tipo?.toLowerCase();
-  const d = cable.destino_tipo?.toLowerCase();
-  const key = `${o}-${d}`;
-
-  return cableColorsMap[key] || cableColorsMap.default;
-}
-function getCableColor(cable) {
-  const o = cable.origen_tipo?.toLowerCase();
-  const d = cable.destino_tipo?.toLowerCase();
-
-  // PRIORIDAD 1 — Línea de tensión → NEGRO
-  if (o === "linea_tension" || d === "linea_tension") return "#cd840eff";
-
-  // PRIORIDAD 2 — UPS → NARANJA
-  if (o === "ups" || d === "ups") return "#ff9900";
-
-  // PRIORIDAD 3 — QNAP → CIAN
-  if (o === "qnap" || d === "qnap") return "#00c3ff";
-
- 
-
-
-  // Si el cable trae un color específico
-  if (cable.color) return cable.color;
-
-  // Fallback → blanco
-  return "#ffffff";
-}
-
-
-
-
-function getCablesSameLane(cable, allCables) {
-  return allCables.filter(c => {
-    // mismo equipo de origen
-    const sameOrigin = 
-      c.origen_tipo === cable.origen_tipo &&
-      c.origen_id === cable.origen_id;
-
-    // mismo carril (offset igual)
-    const sameOffset = c.offset === cable.offset;
-
-    return sameOrigin && sameOffset;
-  });
-}
-
-
-
-
-
-return (
-  <div className="diagram-wrapper">
-    {/* PANEL A LA IZQUIERDA (o abajo en mobile) */}
-    <div className="conexiones-panel">
-      <h3>Conexiones</h3>
-      <ul style={{ paddingLeft: 16 }}>
-        {[...cables]
-          .sort((a, b) => a.label.localeCompare(b.label))
-          .map((c) => (
-            <li key={c.id}>{c.label}</li>
-          ))}
-      </ul>
-    </div>
-
-    {/* SVG PRINCIPAL */}
-    <svg width="1800" height="1400" className="diagram-svg"   
-    onMouseMove={(e) => {
-    if (hoverInfo) {
-      let newX = e.clientX + 25;
-      let newY = e.clientY + 25;
-
-      const maxX = window.innerWidth - 250;
-
-      if (newX > maxX) newX = e.clientX - 250;
-
-      setHoverInfo({ x: newX, y: newY });
+    if (cableOffsets[key][color] !== undefined) {
+      cable.offset = cableOffsets[key][color];
+    } else {
+      const count = Object.keys(cableOffsets[key]).length;
+      const newOffset = count * 15;
+      cableOffsets[key][color] = newOffset;
+      cable.offset = newOffset;
     }
-  }}>
-      {/* RACKS */}
-      {racks.map(() => {}) /* tus racks ya los tenés, solo ilustración */}
+  });
 
-      {rackPositions.map((rack) => (
-        <g key={rack.id} className="rack">
-          <rect
-            className="rack-rect"
-            x={rack.posX}
-            y={rack.posY}
-            width={260}
-            height={rack.height}
-            rx="14"
-          />
-          <text
-            className="rack-title"
-            x={rack.posX + 130}
-            y={rack.posY + 25}
-          >
-            {rack.nombre}
-          </text>
-        </g>
-      ))}
+  // ============================================================
+  // NUEVA LÓGICA: AGRUPAR CABLES POR DESTINO u ORIGEN (reglas pedidas)
+  // - Si hay >1 cable con mismo destino -> grupo por destino
+  // - Else si hay >1 cable con mismo origen -> grupo por origen
+  // - Si comparte ambos (dest y origin con distintos grupos) -> PRIORIDAD DESTINO
+  // Cada grupo recibe un "nivel" para separar verticalmente.
+  // ============================================================
 
-      {/* EQUIPOS */}
-      {equiposGlobal.map((eq) => {
-        const width = eq.tipo === "ups" ? 80 : 240;
-        const height = eq.tipo === "ups" ? 60 : 28;
+  // Mapas de conteo
+  const originMap = {}; // origen_id -> [cables]
+  const destMap = {}; // destino_id -> [cables]
 
-        return (
-          <g key={eq.id} className={`equipo equipo-${eq.tipo}`}>
+  cables.forEach((c) => {
+    const oId = c.origen_id ?? "__null";
+    const dId = c.destino_id ?? "__null";
+
+    if (!originMap[oId]) originMap[oId] = [];
+    originMap[oId].push(c);
+
+    if (!destMap[dId]) destMap[dId] = [];
+    destMap[dId].push(c);
+  });
+
+  // Determinar groupKey para cada cable
+  // groupKey examples: "dest-2", "orig-5", "unique-<id>"
+  const cableGroupKey = {};
+  cables.forEach((c) => {
+    const oId = c.origen_id ?? "__null";
+    const dId = c.destino_id ?? "__null";
+
+    const hasSameDest = (destMap[dId] && destMap[dId].length > 1);
+    const hasSameOrigin = (originMap[oId] && originMap[oId].length > 1);
+
+    if (hasSameDest) {
+      // prioridad destino si ambos true también
+      cableGroupKey[c.id] = `dest-${dId}`;
+    } else if (hasSameOrigin) {
+      cableGroupKey[c.id] = `orig-${oId}`;
+    } else {
+      cableGroupKey[c.id] = `unique-${c.id}`;
+    }
+  });
+
+  // Asignar niveles a cada groupKey (orden estable)
+  const groupKeyList = Array.from(
+    new Set(Object.values(cableGroupKey))
+  );
+
+  const groupLevel = {};
+  groupKeyList.forEach((gk, idx) => {
+    groupLevel[gk] = idx; // nivel 0,1,2...
+  });
+
+  // Parámetros de separación entre grupos
+  const GROUP_SPACING = 40; // px vertical entre grupos
+  const BASE_SAFE_Y = 720; // base que ya usabas
+
+  // ============================================================
+  // Función auxiliar para obtener cables "misma lane" (mantuvimos)
+  // ============================================================
+  function getCablesSameLane(cable, all) {
+    return all.filter((c) => {
+      const sameOrigin =
+        c.origen_tipo === cable.origen_tipo &&
+        c.origen_id === cable.origen_id;
+
+      const sameOffset = c.offset === cable.offset;
+
+      return sameOrigin && sameOffset;
+    });
+  }
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+  return (
+    <div className="diagram-wrapper">
+      {/* PANEL A LA IZQUIERDA */}
+      <div className="conexiones-panel">
+        <h3>Conexiones</h3>
+        <ul style={{ paddingLeft: 16 }}>
+          {[...cables]
+            .sort((a, b) => a.label.localeCompare(b.label))
+            .map((c) => (
+              <li key={c.id}>{c.label}</li>
+            ))}
+        </ul>
+      </div>
+
+      {/* SVG PRINCIPAL */}
+      <svg
+        width="1800"
+        height="1400"
+        className="diagram-svg"
+        onMouseMove={(e) => {
+          if (hoverInfo) {
+            let x = e.clientX + 25;
+            let y = e.clientY + 25;
+
+            const maxX = window.innerWidth - 250;
+            if (x > maxX) x = e.clientX - 250;
+
+            setHoverInfo({ x, y });
+          }
+        }}
+      >
+        {/* RACKS */}
+        {rackPositions.map((rack) => (
+          <g key={rack.id} className="rack">
             <rect
-              className="equipo-rect"
-              x={eq.x}
-              y={eq.y}
-              width={width}
-              height={height}
-              rx={eq.tipo === "ups" ? 10 : 4}
+              className="rack-rect"
+              x={rack.posX}
+              y={rack.posY}
+              width={260}
+              height={rack.height}
+              rx="14"
             />
-
             <text
-              className="equipo-label"
-              x={eq.x + width / 2}
-              y={eq.y + height / 2 + 4}
+              className="rack-title"
+              x={rack.posX + 130}
+              y={rack.posY + 25}
             >
-              {eq.nombre}
+              {rack.nombre}
             </text>
           </g>
-        );
-      })}
+        ))}
 
-      {/* CABLES */}
-    {cables
-  // ⬇️⬇️ FILTRAMOS CABLES QUE APUNTEN A RACKS ⬇️⬇️
-  .filter(c =>
-    c.origen_tipo !== "Rack" &&
-    c.destino_tipo !== "Rack"
-  )
-  .map((cable) => {
-        const origenTipo = cable.origen_tipo?.toLowerCase();
-        const destinoTipo = cable.destino_tipo?.toLowerCase();
+        {/* EQUIPOS */}
+        {equiposGlobal.map((eq) => {
+          const width = eq.tipo === "ups" ? 80 : 240;
+          const height = eq.tipo === "ups" ? 60 : 28;
 
-        const origen = equiposGlobal.find(
-          (e) => e.tipo === origenTipo && e.id === cable.origen_id
-        );
-        const destino = equiposGlobal.find(
-          (e) => e.tipo === destinoTipo && e.id === cable.destino_id
-        );
-
-        if (!origen || !destino) return null;
-
-        const offsetLateral = 18;
-        const offsetVertical = 8;
-
-        const p1 = {
-          x: origen.isUPS ? origen.x + 80 : origen.x + 240,
-          y: origen.y + offsetVertical,
-        };
-
-        const p1_out = {
-          x: p1.x + offsetLateral,
-          y: p1.y,
-        };
-
-        const p2 = {
-          x: destino.isUPS ? destino.x : destino.x,
-          y: destino.y + offsetVertical,
-        };
-
-        const p2_in = {
-          x: p2.x - offsetLateral,
-          y: p2.y,
-        };
-
-        const safeY =
-          Math.max(p1.y + 80, p2.y + 80, 720) + cable.offset;
-
-        const path = `
-          M ${p1.x} ${p1.y}
-          L ${p1_out.x} ${p1_out.y}
-          L ${p1_out.x} ${safeY}
-          L ${p2_in.x} ${safeY}
-          L ${p2_in.x} ${p2_in.y}
-          L ${p2.x} ${p2.y}
-        `;
-
-        const sameLane = getCablesSameLane(cable, cables);
-
-        return (
-          <g
-            key={cable.id}
-           onMouseEnter={(e) => {
-  setHoverCable({ main: cable, group: sameLane });
-
-  setHoverInfo({
-    x: e.clientX + 20,
-    y: e.clientY + 20,
-  });
-}}
-            onMouseLeave={() => {
-  setHoverCable(null);
-  setHoverInfo(null);
-}}
-          >
-            <path
-              d={path}
-              stroke={getCableColor(cable)}
-              strokeWidth="3"
-              fill="none"
-              className={hoverCable?.main?.id === cable.id ? "cable-hover" : ""}
-            />
-            <path
-              d={path}
-              stroke="transparent"
-              strokeWidth="10"
-              fill="none"
-              className={hoverCable?.main?.id === cable.id ? "cable-hover" : ""}
-            />
-          </g>
-        );
-      })}
-
-      {/* TOOLTIP SOBRE CABLE */}
-   
-    </svg>
-    {hoverCable && hoverInfo && (
-  <div
-    style={{
-      position: "fixed",
-      left: hoverInfo.x,
-      top: hoverInfo.y,
-      background: "black",
-      color: "white",
-      padding: "10px 14px",
-      borderRadius: "8px",
-      zIndex: 9999,
-      pointerEvents: "none",
-      opacity: 0.9,
-      whiteSpace: "nowrap",
-      boxShadow: "0 0 10px rgba(255,255,255,0.4)",
-    }}
+          return (
+           <g
+  key={eq.id}
+  className={`equipo equipo-${eq.tipo}`}
+  onClick={() => {
+    // Si clickeo el mismo aparato → deseleccionar
+    if (selectedDevice?.id === eq.id && selectedDevice?.tipo === eq.tipo) {
+      setSelectedDevice(null);
+    } else {
+      setSelectedDevice({ id: eq.id, tipo: eq.tipo });
+    }
+  }}
+  style={{ cursor: "pointer" }}
+>
+  <rect
+    className="equipo-rect"
+    x={eq.x}
+    y={eq.y}
+    width={width}
+    height={height}
+    rx={eq.tipo === "ups" ? 10 : 4}
+    stroke={selectedDevice?.id === eq.id && selectedDevice?.tipo === eq.tipo ? "#00eaff" : undefined}
+    strokeWidth={selectedDevice?.id === eq.id && selectedDevice?.tipo === eq.tipo ? 3 : 1}
+  />
+  <text
+    className="equipo-label"
+    x={eq.x + width / 2}
+    y={eq.y + height / 2 + 4}
   >
-    {hoverCable.group.length > 1 ? (
-      <>
-        <strong>{hoverCable.group.length} cables:</strong>
-        <ul style={{ margin: 0, paddingLeft: 16 }}>
-          {hoverCable.group.map((c) => (
-            <li key={c.id}>{c.label}</li>
-          ))}
-        </ul>
-      </>
-    ) : (
-      hoverCable.main.label
-    )}
-  </div>
-)}
-  </div>
-);
+    {eq.nombre}
+  </text>
+</g>
+          );
+        })}
+
+        {/* CABLES */}
+        {cables
+          .filter(c => {
+    if (!selectedDevice) return true;
+
+    const isOrigin = (c.origen_id === selectedDevice.id && c.origen_tipo === selectedDevice.tipo);
+    const isDest = (c.destino_id === selectedDevice.id && c.destino_tipo === selectedDevice.tipo);
+
+    return isOrigin || isDest;
+  })
+          // **** FILTRAR CABLES QUE APUNTAN A RACKS ****
+          .filter(
+            (c) =>
+              String(c.origen_tipo).toLowerCase() !== "rack" &&
+              String(c.destino_tipo).toLowerCase() !== "rack"
+          )
+          .map((cable) => {
+            const o = cable.origen_tipo?.toLowerCase();
+            const d = cable.destino_tipo?.toLowerCase();
+
+            const origen = equiposGlobal.find(
+              (e) => e.tipo === o && e.id === cable.origen_id
+            );
+            const destino = equiposGlobal.find(
+              (e) => e.tipo === d && e.id === cable.destino_id
+            );
+
+            if (!origen || !destino) return null;
+
+            const offsetLateral = 18;
+            const offsetVertical = 8;
+
+            const p1 = {
+              x: origen.isUPS ? origen.x + 80 : origen.x + 240,
+              y: origen.y + offsetVertical,
+            };
+
+            const p1_out = { x: p1.x + offsetLateral, y: p1.y };
+
+            const p2 = {
+              x: destino.isUPS ? destino.x : destino.x,
+              y: destino.y + offsetVertical,
+            };
+
+            const p2_in = { x: p2.x - offsetLateral, y: p2.y };
+
+            // ===========================
+            // safeY calculado por grupo
+            // ===========================
+            const gk = cableGroupKey[cable.id];
+            const level = groupLevel[gk] ?? 0;
+            const safeY = Math.max(p1.y + 80, p2.y + 80, BASE_SAFE_Y) + (level * GROUP_SPACING) + (cable.offset || 0);
+
+            const path = `
+              M ${p1.x} ${p1.y}
+              L ${p1_out.x} ${p1_out.y}
+              L ${p1_out.x} ${safeY}
+              L ${p2_in.x} ${safeY}
+              L ${p2_in.x} ${p2_in.y}
+              L ${p2.x} ${p2.y}
+            `;
+
+            const sameLane = getCablesSameLane(cable, cables);
+
+            return (
+              <g
+                key={cable.id}
+                onMouseEnter={(e) => {
+                  setHoverCable({ main: cable, group: sameLane });
+                  setHoverInfo({
+                    x: e.clientX + 20,
+                    y: e.clientY + 20,
+                  });
+                }}
+                onMouseLeave={() => {
+                  setHoverCable(null);
+                  setHoverInfo(null);
+                }}
+              >
+                <path
+                  d={path}
+                  stroke={getCableColor(cable)}
+                  strokeWidth="3"
+                  fill="none"
+                />
+                {/* zona hover grande */}
+                <path
+                  d={path}
+                  stroke="transparent"
+                  strokeWidth="10"
+                  fill="none"
+                />
+              </g>
+            );
+          })}
+      </svg>
+
+      {/* TOOLTIP */}
+      {hoverCable && hoverInfo && (
+        <div
+          style={{
+            position: "fixed",
+            left: hoverInfo.x,
+            top: hoverInfo.y,
+            background: "black",
+            color: "white",
+            padding: "10px 14px",
+            borderRadius: "8px",
+            zIndex: 9999,
+            pointerEvents: "none",
+            opacity: 0.9,
+            whiteSpace: "nowrap",
+            boxShadow: "0 0 10px rgba(255,255,255,0.4)",
+          }}
+        >
+          {hoverCable.group.length > 1 ? (
+            <>
+              <strong>{hoverCable.group.length} cables:</strong>
+              <ul style={{ margin: 0, paddingLeft: 16 }}>
+                {hoverCable.group.map((c) => (
+                  <li key={c.id}>{c.label}</li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            hoverCable.main.label
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
