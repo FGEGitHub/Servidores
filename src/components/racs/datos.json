@@ -17,12 +17,18 @@
         { "id": 6, "nombre": "Mikrotik Interno", "rack_id": 6, "tipo": "router" },
     { "id": 7, "nombre": "Mikrotik Palacio", "rack_id": 6, "tipo": "router" }
   ],
+  "sw": [
+    { "id": 1, "nombre": "SW Camaras", "rack_id":2, "tipo": "sw" },
+    { "id": 2, "nombre": "SW Qnap", "rack_id": 2, "tipo": "sw" },
+    { "id": 3, "nombre": "SW Sistemas Arriba/Abajo", "rack_id": 6, "tipo": "sw" },
+    { "id": 4, "nombre": "SW Optico", "rack_id": 5, "tipo": "sw" }
 
+  ],
   "fortinet": [
     {
       "id": 1,
       "nombre": "Fortinet Gigared",
-      "rack_id": 2,
+      "rack_id": 5,
       "tipo": "fortinet",
       "puertos": {
         "puerto1": null, "puerto2": null, "puerto3": null, "puerto4": null,
@@ -39,17 +45,9 @@
     { "id": 3, "nombre": "Mikrotik Externo", "rack_id": 5, "tipo": "mikrotik", "puertos": {} },
     { "id": 4, "nombre": "Mikrotik Fibra 2004", "rack_id": 5, "tipo": "mikrotik", "puertos": {} },
     { "id": 5, "nombre": "Mikrotik 3011 Telco", "rack_id": 5, "tipo": "mikrotik", "puertos": {} }
+
   ],
 
-  "ups": [
-    { "id": 1, "nombre": "UPS 1", "rack_id": 4, "tipo": "ups" },
-    { "id": 2, "nombre": "UPS 2", "rack_id": 4, "tipo": "ups" },
-    { "id": 3, "nombre": "UPS 3", "rack_id": 4, "tipo": "ups" },
-    { "id": 4, "nombre": "UPS 4", "rack_id": 4, "tipo": "ups" },
-    { "id": 5, "nombre": "UPS 5", "rack_id": 4, "tipo": "ups" },
-    { "id": 6, "nombre": "UPS 6", "rack_id": 4, "tipo": "ups" },
-    { "id": 7, "nombre": "UPS Chico", "rack_id": null, "tipo": "ups" }
-  ],
 
   "servidores": [
        { "id": 4, "nombre": "Nodo4", "rack_id": 1, "tipo": "servidor" },
@@ -67,13 +65,15 @@
    
     { "id": 9, "nombre": "Telefonia", "rack_id": 1, "tipo": "servidor" },
   
-    { "id": 11, "nombre": "Moe", "rack_id": 1, "tipo": "servidor" }
+    { "id": 11, "nombre": "Moe", "rack_id": 1, "tipo": "servidor" },
+
+        { "id": 11, "nombre": "Dahua", "rack_id": 4, "tipo": "servidor" }
   ],
 
   "qnap": [
-    { "id": 1, "nombre": "QNAP Sistemas", "rack_id": 4, "tipo": "qnap" },
-    { "id": 2, "nombre": "QNAP Palacio", "rack_id": 4, "tipo": "qnap" },
-    { "id": 3, "nombre": "QNAP Digitalización", "rack_id": 4, "tipo": "qnap" }
+    { "id": 1, "nombre": "QNAP Sistemas", "rack_id": 2, "tipo": "qnap" },
+    { "id": 2, "nombre": "QNAP Palacio", "rack_id": 2, "tipo": "qnap" },
+    { "id": 3, "nombre": "QNAP Digitalización", "rack_id": 2, "tipo": "qnap" }
   ],
 "linea_tension": [
   {
@@ -96,8 +96,26 @@
     "rack_id": 6,
     "tipo": "linea_tension",
     "altura": 1
+  },
+    {
+    "id": 4,
+    "nombre": "Canal de Tensión 1",
+    "rack_id": 4,
+    "tipo": "linea_tension",
+    "altura": 1
   }
 ],
+
+  "ups": [
+    { "id": 1, "nombre": "UPS 1", "rack_id": 4, "tipo": "ups" },
+    { "id": 2, "nombre": "UPS 2", "rack_id": 4, "tipo": "ups" },
+    { "id": 3, "nombre": "UPS 3", "rack_id": 4, "tipo": "ups" },
+    { "id": 4, "nombre": "UPS 4", "rack_id": 4, "tipo": "ups" },
+    { "id": 5, "nombre": "UPS 5", "rack_id": 2, "tipo": "ups" },
+    { "id": 6, "nombre": "UPS 6", "rack_id": 2, "tipo": "ups" },
+    { "id": 7, "nombre": "UPS Chico", "rack_id": null, "tipo": "ups" }
+  ],
+
   "cables": [
 
    { "id": 1, "origen_id": 1, "destino_id": 1, "origen_tipo": "ups", "destino_tipo": "qnap", "color": "orange", "label": "UPS 1 → QNAP Sistemas" },
@@ -139,16 +157,6 @@
 
 
 
-  { "id": 16, "origen_id": 4, "destino_id": 1, "origen_tipo": "servidor", "destino_tipo": "servidor", "color": "red", "label": "Rack Servidores 1 → SW Cámaras" },
-  { "id": 17, "origen_id": 4, "destino_id": 2, "origen_tipo": "servidor", "destino_tipo": "servidor", "color": "red", "label": "Rack Servidores 1 → SW QNAP" },
-  { "id": 18, "origen_id": 4, "destino_id": 3, "origen_tipo": "servidor", "destino_tipo": "servidor", "color": "red", "label": "Rack Servidores 1 → NVR 1" },
-  { "id": 19, "origen_id": 4, "destino_id": 4, "origen_tipo": "servidor", "destino_tipo": "servidor", "color": "red", "label": "Rack Servidores 1 → Yamcha" },
-  { "id": 20, "origen_id": 4, "destino_id": 5, "origen_tipo": "servidor", "destino_tipo": "servidor", "color": "red", "label": "Rack Servidores 1 → Piccolo" },
-  { "id": 21, "origen_id": 4, "destino_id": 6, "origen_tipo": "servidor", "destino_tipo": "servidor", "color": "red", "label": "Rack Servidores 1 → Vegeta" },
-  { "id": 22, "origen_id": 4, "destino_id": 7, "origen_tipo": "servidor", "destino_tipo": "servidor", "color": "red", "label": "Rack Servidores 1 → POE Cámaras" },
-
-
-
   {
     "id": 23,
     "origen_id": 1,
@@ -184,8 +192,34 @@
   "destino_tipo": "linea_tension",
   "color": "black",
   "label": "Línea de Tensión 1 (Rack Redes 1) → Línea de Tensión 1 (Rack Redes 2)"
-}
+},
 
-  
+  {
+  "id": 27,
+  "origen_id": 4,
+  "destino_id": 3,
+  "origen_tipo": "servidor",
+  "destino_tipo": "linea_tension",
+  "color": "black",
+  "label": "Nodo 4 (Rack Redes 1) → Línea de Tensión 1 (Rack Redes 2)"
+},
+{
+  "id": 28,
+  "origen_id": 4,
+  "destino_id": 2,
+  "origen_tipo": "servidor",
+  "destino_tipo": "linea_tension",
+  "color": "black",
+  "label": "Nodo 4  → Línea de Tensión 1 (Rack Redes 2)"
+},
+{
+  "id": 29,
+  "origen_id": 6,
+  "destino_id": 4,
+  "origen_tipo": "servidor",
+  "destino_tipo": "linea_tension",
+  "color": "black",
+  "label": "Storwize → Línea de Tensión 1 (Rack Redes 2)"
+}
   ]
 }

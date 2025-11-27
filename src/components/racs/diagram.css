@@ -40,7 +40,7 @@
 .equipo-servidor .equipo-rect { fill: #43a047; }
 .equipo-ups .equipo-rect { fill: #ffb300; }
 .equipo-qnap .equipo-rect { fill: #009688; }
-
+.equipo-sw .equipo-rect { fill: #e78ddf; }
 /* --- CABLES --- */
 .cable {
   stroke-width: 4;

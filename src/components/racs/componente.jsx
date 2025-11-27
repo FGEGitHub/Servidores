@@ -8,8 +8,9 @@ export default function RackDiagram() {
     routers,
     fortinet,
     mikrotik,
+     servidores,
     ups,
-    servidores,
+   sw,
     qnap,
     cables,
     linea_tension
@@ -60,13 +61,14 @@ function getUpsCoords(upsItem, index, rack) {
   // Equipos ordenados por slot
   // ---------------------------
 const equipos = [
+  ...sw,
   ...routers,
   ...fortinet,
   ...mikrotik,
+    ...servidores,
   ...ups,
-  ...servidores,
   ...qnap,
-  ...linea_tension   // ⬅️ nuevo
+  ...linea_tension   // 
 ]
     .filter((e) => e.rack_id !== null)
     .map((e) => ({ ...e }));
@@ -252,6 +254,9 @@ function getCableColor(cable) {
   // PRIORIDAD 3 — QNAP → CIAN
   if (o === "qnap" || d === "qnap") return "#00c3ff";
 
+ 
+
+
   // Si el cable trae un color específico
   if (cable.color) return cable.color;
 
@@ -359,7 +364,13 @@ return (
       })}
 
       {/* CABLES */}
-      {cables.map((cable) => {
+    {cables
+  // ⬇️⬇️ FILTRAMOS CABLES QUE APUNTEN A RACKS ⬇️⬇️
+  .filter(c =>
+    c.origen_tipo !== "Rack" &&
+    c.destino_tipo !== "Rack"
+  )
+  .map((cable) => {
         const origenTipo = cable.origen_tipo?.toLowerCase();
         const destinoTipo = cable.destino_tipo?.toLowerCase();
 
