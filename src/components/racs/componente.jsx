@@ -55,6 +55,20 @@ const [selectedDevice, setSelectedDevice] = useState(null);
     return { x, y };
   }
 
+
+
+function getLadoMasCercano(origen, destino, widthOrigen, widthDestino) {
+
+  const centroOrigen = origen.x + widthOrigen / 2;
+  const centroDestino = destino.x + widthDestino / 2;
+
+  // Si destino está a la derecha → salgo por derecha
+  // Si destino está a la izquierda → salgo por izquierda
+  const salirPorDerecha = centroDestino > centroOrigen;
+
+  return salirPorDerecha ? "derecha" : "izquierda";
+}
+
   // ---------------------------
   // Equipos (SW agregado)
   // ---------------------------
@@ -425,26 +439,126 @@ const [selectedDevice, setSelectedDevice] = useState(null);
             const offsetLateral = 18;
             const offsetVertical = 8;
 
-            const p1 = {
-              x: origen.isUPS ? origen.x + 80 : origen.x + 240,
-              y: origen.y + offsetVertical,
-            };
+// Anchos reales
+const wOrigen = origen.isUPS ? 80 : 240;
+const wDestino = destino.isUPS ? 80 : 240;
 
-            const p1_out = { x: p1.x + offsetLateral, y: p1.y };
+let p1, p1_out, p2, p2_in;
 
-            const p2 = {
-              x: destino.isUPS ? destino.x : destino.x,
-              y: destino.y + offsetVertical,
-            };
+// ==========================================
+//     RACKS DISTINTOS → CAMINO MÁS CORTO
+// ==========================================
+if (origen.rack_id !== destino.rack_id) {
+  const centroOrigen = origen.x + wOrigen / 2;
+  const centroDestino = destino.x + wDestino / 2;
 
-            const p2_in = { x: p2.x - offsetLateral, y: p2.y };
+  const origenEstaIzq = centroOrigen < centroDestino;
+
+  if (origenEstaIzq) {
+    // Origen a la izquierda → sale por DERECHA, entra por IZQUIERDA
+    p1 = { x: origen.x + wOrigen, y: origen.y + offsetVertical };
+    p1_out = { x: p1.x + offsetLateral, y: p1.y };
+
+    p2 = { x: destino.x, y: destino.y + offsetVertical };
+    p2_in = { x: p2.x - offsetLateral, y: p2.y };
+  } else {
+    // Origen a la derecha → sale por IZQUIERDA y entra por DERECHA
+    p1 = { x: origen.x, y: origen.y + offsetVertical };
+    p1_out = { x: p1.x - offsetLateral, y: p1.y };
+
+    p2 = { x: destino.x + wDestino, y: destino.y + offsetVertical };
+    p2_in = { x: p2.x + offsetLateral, y: p2.y };
+  }
+}
+
+// ==========================================
+//     MISMO RACK → tu lógica actual
+// ==========================================
+else {
+  p1 = {
+    x: origen.isUPS ? origen.x + 80 : origen.x + 240,
+    y: origen.y + offsetVertical,
+  };
+  p1_out = { x: p1.x + offsetLateral, y: p1.y };
+
+  p2 = {
+    x: destino.isUPS ? destino.x + 80 : destino.x + 240,
+    y: destino.y + offsetVertical,
+  };
+  p2_in = { x: p2.x + offsetLateral, y: p2.y };
+}
+
+// SI ESTÁN EN EL MISMO RACK → FORZAR LADO DERECHO
+if (origen.rack_id === destino.rack_id) {
+  p2.x = destino.isUPS ? destino.x + 80 : destino.x + 240;
+  p2_in.x = p2.x + offsetLateral;
+}
+
 
             // ===========================
             // safeY calculado por grupo
             // ===========================
-            const gk = cableGroupKey[cable.id];
-            const level = groupLevel[gk] ?? 0;
-            const safeY = Math.max(p1.y + 80, p2.y + 80, BASE_SAFE_Y) + (level * GROUP_SPACING) + (cable.offset || 0);
+       let safeY;
+
+if (origen.rack_id === destino.rack_id) {
+  const rack = rackPositions.find(r => r.id === origen.rack_id);
+
+  // equipos del rack con sus y + height reales
+  const equiposDelRack = equiposGlobal.filter(p => p.rack_id === origen.rack_id);
+
+  // Si no hay equipos (por seguridad) caer al límite del rack
+  let limiteReal;
+  if (equiposDelRack.length === 0) {
+    limiteReal = rack ? rack.posY + rack.height - 8 : BASE_SAFE_Y;
+  } else {
+    // calcular y + height según tipo (UPS tiene 60, el resto 28)
+    const puntosBajos = equiposDelRack.map(e => {
+      const h = e.isUPS ? 60 : 28;
+      return (e.y || 0) + h;
+    });
+    const equipoMasBajo = Math.max(...puntosBajos);
+    limiteReal = equipoMasBajo + 4; // margen mínimo
+  }
+
+  const minY = Math.min(p1.y, p2.y);
+  const maxY = Math.max(p1.y, p2.y);
+
+  // altura ideal — muy ajustada
+  let srY = maxY + 10 + (cable.offset || 0);
+
+  // si están muy cerca, subir un poquito
+  if (Math.abs(p1.y - p2.y) < 18) {
+    srY += 3;
+  }
+
+  // aplicar límite REAL
+  safeY = Math.min(srY, limiteReal);
+}
+
+else {
+  // Racks distintos → usar lógica normal
+    const gk = cableGroupKey[cable.id];
+  const level = groupLevel[gk] ?? 0;
+
+  const esUPSOrigen = origen.isUPS === true;
+  const esUPSDestino = destino.isUPS === true;
+
+  // Bajada mínima
+  let baseDrop = 20; // BAJADA MUY PEQUEÑA
+
+  if (esUPSOrigen || esUPSDestino) {
+    baseDrop = 10;   // Si hay UPS → bajar incluso MENOS
+  }
+
+  // MinNeeded ahora es MUY pequeño
+  const minNeeded = Math.max(p1.y, p2.y) + baseDrop;
+
+  // Menos separación vertical entre cables
+  const separation = level * 8 + (cable.offset || 0); // antes eran 25–40 px
+
+  safeY = minNeeded + separation;
+
+}
 
             const path = `
               M ${p1.x} ${p1.y}
