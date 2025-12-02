@@ -57,16 +57,13 @@ const [selectedDevice, setSelectedDevice] = useState(null);
 
 
 
-function getLadoMasCercano(origen, destino, widthOrigen, widthDestino) {
+function getLadoMismoServidor(origen, destino, wOrigen, wDestino) {
+  const centroOrigen = origen.x + wOrigen / 2;
+  const centroDestino = destino.x + wDestino / 2;
 
-  const centroOrigen = origen.x + widthOrigen / 2;
-  const centroDestino = destino.x + widthDestino / 2;
-
-  // Si destino está a la derecha → salgo por derecha
-  // Si destino está a la izquierda → salgo por izquierda
-  const salirPorDerecha = centroDestino > centroOrigen;
-
-  return salirPorDerecha ? "derecha" : "izquierda";
+  // Si destino está a la derecha → usar derecha
+  // Si destino está a la izquierda → usar izquierda
+  return centroDestino > centroOrigen ? "derecha" : "izquierda";
 }
 
   // ---------------------------
@@ -159,7 +156,7 @@ function getLadoMasCercano(origen, destino, widthOrigen, widthDestino) {
     const rack = rackPositions.find((r) => r.id === equipo.rack_id);
     if (!rack) return { x: 0, y: 0 };
     return {
-      x: rack.posX + 20,
+      x: rack.posX + 8,
       y: rack.posY + 40 + (equipo.slot - 1) * 32,
     };
   };
@@ -408,8 +405,8 @@ function getLadoMasCercano(origen, destino, widthOrigen, widthDestino) {
         })}
 
         {/* CABLES */}
-        {cables
-          .filter(c => {
+       {cables
+  .filter(c => {
     if (!selectedDevice) return true;
 
     const isOrigin = (c.origen_id === selectedDevice.id && c.origen_tipo === selectedDevice.tipo);
@@ -417,191 +414,163 @@ function getLadoMasCercano(origen, destino, widthOrigen, widthDestino) {
 
     return isOrigin || isDest;
   })
-          // **** FILTRAR CABLES QUE APUNTAN A RACKS ****
-          .filter(
-            (c) =>
-              String(c.origen_tipo).toLowerCase() !== "rack" &&
-              String(c.destino_tipo).toLowerCase() !== "rack"
-          )
-          .map((cable) => {
-            const o = cable.origen_tipo?.toLowerCase();
-            const d = cable.destino_tipo?.toLowerCase();
 
-            const origen = equiposGlobal.find(
-              (e) => e.tipo === o && e.id === cable.origen_id
-            );
-            const destino = equiposGlobal.find(
-              (e) => e.tipo === d && e.id === cable.destino_id
-            );
+  // **** FILTRAR CABLES QUE APUNTAN A RACKS ****
+  .filter(
+    (c) =>
+      String(c.origen_tipo).toLowerCase() !== "rack" &&
+      String(c.destino_tipo).toLowerCase() !== "rack"
+  )
 
-            if (!origen || !destino) return null;
+  .map((cable) => {
+    const o = cable.origen_tipo?.toLowerCase();
+    const d = cable.destino_tipo?.toLowerCase();
 
-            const offsetLateral = 18;
-            const offsetVertical = 8;
+    const origen = equiposGlobal.find(
+      (e) => e.tipo === o && e.id === cable.origen_id
+    );
+    const destino = equiposGlobal.find(
+      (e) => e.tipo === d && e.id === cable.destino_id
+    );
 
-// Anchos reales
-const wOrigen = origen.isUPS ? 80 : 240;
-const wDestino = destino.isUPS ? 80 : 240;
+    if (!origen || !destino) return null;
 
-let p1, p1_out, p2, p2_in;
+    // Anchos reales
+    const wOrigen = origen.isUPS ? 80 : 240;
+    const wDestino = destino.isUPS ? 80 : 240;
 
-// ==========================================
-//     RACKS DISTINTOS → CAMINO MÁS CORTO
-// ==========================================
-if (origen.rack_id !== destino.rack_id) {
-  const centroOrigen = origen.x + wOrigen / 2;
-  const centroDestino = destino.x + wDestino / 2;
+    // ===========================================
+    // FUNCIÓN NUEVA PARA MISMO SERVIDOR
+    // ===========================================
+    function getLadoMismoServidor(origen, destino, wOrigen, wDestino) {
+      const centroOrigen = origen.x + wOrigen / 2;
+      const centroDestino = destino.x + wDestino / 2;
+      return centroDestino > centroOrigen ? "derecha" : "izquierda";
+    }
 
-  const origenEstaIzq = centroOrigen < centroDestino;
+    // ===========================================
+    // NUEVO SISTEMA DE RUTEO ORTOGONAL
+    // ===========================================
+   function computeCablePath(origen, destino, wOrigen, wDestino) {
+  const mismoRack = origen.rack_id === destino.rack_id;
+  const origenEsUPS = origen.tipo === "ups";
+  const destinoEsUPS = destino.tipo === "ups";
 
-  if (origenEstaIzq) {
-    // Origen a la izquierda → sale por DERECHA, entra por IZQUIERDA
-    p1 = { x: origen.x + wOrigen, y: origen.y + offsetVertical };
-    p1_out = { x: p1.x + offsetLateral, y: p1.y };
+  // ===============================================
+  // 1) DETERMINAR UN ÚNICO LADO
+  // ===============================================
 
-    p2 = { x: destino.x, y: destino.y + offsetVertical };
-    p2_in = { x: p2.x - offsetLateral, y: p2.y };
-  } else {
-    // Origen a la derecha → sale por IZQUIERDA y entra por DERECHA
-    p1 = { x: origen.x, y: origen.y + offsetVertical };
-    p1_out = { x: p1.x - offsetLateral, y: p1.y };
+  let salirPorDerecha;
 
-    p2 = { x: destino.x + wDestino, y: destino.y + offsetVertical };
-    p2_in = { x: p2.x + offsetLateral, y: p2.y };
+  // MISMO SERVIDOR
+  if (origen.id === destino.id && origen.tipo === destino.tipo) {
+    salirPorDerecha =
+      getLadoMismoServidor(origen, destino, wOrigen, wDestino) === "derecha";
   }
-}
 
-// ==========================================
-//     MISMO RACK → tu lógica actual
-// ==========================================
-else {
-  p1 = {
-    x: origen.isUPS ? origen.x + 80 : origen.x + 240,
-    y: origen.y + offsetVertical,
+  // MISMO RACK → siempre mismo lado
+  else if (mismoRack) {
+    const centroOrigen = origen.x + wOrigen / 2;
+    const centroRack = origen.rack_x + origen.rack_width / 2;
+    salirPorDerecha = centroOrigen > centroRack;
+  }
+
+  // RACKS DISTINTOS → camino más corto
+  else {
+    salirPorDerecha =
+      (origen.x + wOrigen / 2) < (destino.x + wDestino / 2);
+  }
+
+  // ===============================================
+  // 2) PUNTOS DE SALIDA
+  // ===============================================
+  const p1 = {
+    x: salirPorDerecha ? origen.x + wOrigen : origen.x,
+    y: origen.y + 10,
   };
-  p1_out = { x: p1.x + offsetLateral, y: p1.y };
 
-  p2 = {
-    x: destino.isUPS ? destino.x + 80 : destino.x + 240,
-    y: destino.y + offsetVertical,
+  const offsetSalida = origenEsUPS ? 45 : 20;
+
+  const p1_out = {
+    x: salirPorDerecha ? p1.x + offsetSalida : p1.x - offsetSalida,
+    y: p1.y,
   };
-  p2_in = { x: p2.x + offsetLateral, y: p2.y };
+
+  // ===============================================
+  // 3) PUNTOS DE ENTRADA
+  // ===============================================
+const p2 = {
+  x: salirPorDerecha ? destino.x + wDestino : destino.x,
+  y: destino.y + 10
+};
+
+const offsetEntrada = destinoEsUPS ? 45 : 20;
+
+// SIEMPRE hacia afuera del servidor
+const p2_in = {
+  x: p2.x - offsetEntrada,
+  y: p2.y
+};
+
+  // ===============================================
+  // 4) MID Y
+  // ===============================================
+  let midY = (p1_out.y + p2_in.y) / 2;
+
+  if (origenEsUPS && !destinoEsUPS) midY += 35;
+  if (destinoEsUPS && !origenEsUPS) midY -= 35;
+  if (origenEsUPS && destinoEsUPS) midY += 50;
+
+  // ===============================================
+  // 5) PATH FINAL
+  // ===============================================
+  return `
+    M ${p1.x} ${p1.y}
+    L ${p1_out.x} ${p1_out.y}
+    L ${p1_out.x} ${midY}
+    L ${p2_in.x} ${midY}
+    L ${p2_in.x} ${p2_in.y}
+    L ${p2.x} ${p2.y}
+  `;
 }
 
-// SI ESTÁN EN EL MISMO RACK → FORZAR LADO DERECHO
-if (origen.rack_id === destino.rack_id) {
-  p2.x = destino.isUPS ? destino.x + 80 : destino.x + 240;
-  p2_in.x = p2.x + offsetLateral;
-}
+    // CALCULAR PATH FINAL
+    const path = computeCablePath(origen, destino, wOrigen, wDestino);
 
+    const sameLane = getCablesSameLane(cable, cables);
 
-            // ===========================
-            // safeY calculado por grupo
-            // ===========================
-       let safeY;
+    return (
+      <g
+        key={cable.id}
+        onMouseEnter={(e) => {
+          setHoverCable({ main: cable, group: sameLane });
+          setHoverInfo({
+            x: e.clientX + 20,
+            y: e.clientY + 20,
+          });
+        }}
+        onMouseLeave={() => {
+          setHoverCable(null);
+          setHoverInfo(null);
+        }}
+      >
+        <path
+          d={path}
+          stroke={getCableColor(cable)}
+          strokeWidth="3"
+          fill="none"
+        />
+        {/* zona hover grande */}
+        <path
+          d={path}
+          stroke="transparent"
+          strokeWidth="10"
+          fill="none"
+        />
+      </g>
+    );
+  })}
 
-if (origen.rack_id === destino.rack_id) {
-  const rack = rackPositions.find(r => r.id === origen.rack_id);
-
-  // equipos del rack con sus y + height reales
-  const equiposDelRack = equiposGlobal.filter(p => p.rack_id === origen.rack_id);
-
-  // Si no hay equipos (por seguridad) caer al límite del rack
-  let limiteReal;
-  if (equiposDelRack.length === 0) {
-    limiteReal = rack ? rack.posY + rack.height - 8 : BASE_SAFE_Y;
-  } else {
-    // calcular y + height según tipo (UPS tiene 60, el resto 28)
-    const puntosBajos = equiposDelRack.map(e => {
-      const h = e.isUPS ? 60 : 28;
-      return (e.y || 0) + h;
-    });
-    const equipoMasBajo = Math.max(...puntosBajos);
-    limiteReal = equipoMasBajo + 4; // margen mínimo
-  }
-
-  const minY = Math.min(p1.y, p2.y);
-  const maxY = Math.max(p1.y, p2.y);
-
-  // altura ideal — muy ajustada
-  let srY = maxY + 10 + (cable.offset || 0);
-
-  // si están muy cerca, subir un poquito
-  if (Math.abs(p1.y - p2.y) < 18) {
-    srY += 3;
-  }
-
-  // aplicar límite REAL
-  safeY = Math.min(srY, limiteReal);
-}
-
-else {
-  // Racks distintos → usar lógica normal
-    const gk = cableGroupKey[cable.id];
-  const level = groupLevel[gk] ?? 0;
-
-  const esUPSOrigen = origen.isUPS === true;
-  const esUPSDestino = destino.isUPS === true;
-
-  // Bajada mínima
-  let baseDrop = 20; // BAJADA MUY PEQUEÑA
-
-  if (esUPSOrigen || esUPSDestino) {
-    baseDrop = 10;   // Si hay UPS → bajar incluso MENOS
-  }
-
-  // MinNeeded ahora es MUY pequeño
-  const minNeeded = Math.max(p1.y, p2.y) + baseDrop;
-
-  // Menos separación vertical entre cables
-  const separation = level * 8 + (cable.offset || 0); // antes eran 25–40 px
-
-  safeY = minNeeded + separation;
-
-}
-
-            const path = `
-              M ${p1.x} ${p1.y}
-              L ${p1_out.x} ${p1_out.y}
-              L ${p1_out.x} ${safeY}
-              L ${p2_in.x} ${safeY}
-              L ${p2_in.x} ${p2_in.y}
-              L ${p2.x} ${p2.y}
-            `;
-
-            const sameLane = getCablesSameLane(cable, cables);
-
-            return (
-              <g
-                key={cable.id}
-                onMouseEnter={(e) => {
-                  setHoverCable({ main: cable, group: sameLane });
-                  setHoverInfo({
-                    x: e.clientX + 20,
-                    y: e.clientY + 20,
-                  });
-                }}
-                onMouseLeave={() => {
-                  setHoverCable(null);
-                  setHoverInfo(null);
-                }}
-              >
-                <path
-                  d={path}
-                  stroke={getCableColor(cable)}
-                  strokeWidth="3"
-                  fill="none"
-                />
-                {/* zona hover grande */}
-                <path
-                  d={path}
-                  stroke="transparent"
-                  strokeWidth="10"
-                  fill="none"
-                />
-              </g>
-            );
-          })}
       </svg>
 
       {/* TOOLTIP */}
