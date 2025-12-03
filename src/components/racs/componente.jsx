@@ -1,3 +1,5 @@
+
+////////////la patitas son p2 in
 import React, { useState } from "react";
 import data from "./datos.json";
 import "./diagram.css";
@@ -451,79 +453,138 @@ function getLadoMismoServidor(origen, destino, wOrigen, wDestino) {
     // ===========================================
     // NUEVO SISTEMA DE RUTEO ORTOGONAL
     // ===========================================
-   function computeCablePath(origen, destino, wOrigen, wDestino) {
+
+// --- Reemplazar computeCablePath por esta versión ---
+function computeCablePath(origen, destino, wOrigen, wDestino) {
   const mismoRack = origen.rack_id === destino.rack_id;
   const origenEsUPS = origen.tipo === "ups";
   const destinoEsUPS = destino.tipo === "ups";
 
-  // ===============================================
-  // 1) DETERMINAR UN ÚNICO LADO
-  // ===============================================
+  // centros para decidir izquierda/derecha
+  const centroOrigen = origen.x + wOrigen / 2;
+  const centroDestino = destino.x + wDestino / 2;
 
-  let salirPorDerecha;
+  // por defecto: si origen está a la izquierda -> salir por derecha
+  let salirPorDerecha = centroOrigen < centroDestino;
 
-  // MISMO SERVIDOR
+  // si es el mismo equipo, mantener la lógica local
   if (origen.id === destino.id && origen.tipo === destino.tipo) {
-    salirPorDerecha =
-      getLadoMismoServidor(origen, destino, wOrigen, wDestino) === "derecha";
+    salirPorDerecha = (origen.x + wOrigen / 2) < (destino.x + wDestino / 2);
   }
 
-  // MISMO RACK → siempre mismo lado
-  else if (mismoRack) {
-    const centroOrigen = origen.x + wOrigen / 2;
-    const centroRack = origen.rack_x + origen.rack_width / 2;
-    salirPorDerecha = centroOrigen > centroRack;
-  }
-
-  // RACKS DISTINTOS → camino más corto
-  else {
-    salirPorDerecha =
-      (origen.x + wOrigen / 2) < (destino.x + wDestino / 2);
-  }
-
-  // ===============================================
-  // 2) PUNTOS DE SALIDA
-  // ===============================================
+  // -----------------------
+  // Puntos de salida (origen)
+  // -----------------------
   const p1 = {
     x: salirPorDerecha ? origen.x + wOrigen : origen.x,
-    y: origen.y + 10,
+    y: origen.y + (origen.isUPS ? 30 : 14)
   };
 
   const offsetSalida = origenEsUPS ? 45 : 20;
-
   const p1_out = {
     x: salirPorDerecha ? p1.x + offsetSalida : p1.x - offsetSalida,
-    y: p1.y,
+    y: p1.y
   };
 
-  // ===============================================
-  // 3) PUNTOS DE ENTRADA
-  // ===============================================
-const p2 = {
-  x: salirPorDerecha ? destino.x + wDestino : destino.x,
-  y: destino.y + 10
-};
+  // -----------------------
+  // Puntos de entrada (destino) y patita p2_in
+  // -----------------------
+  let p2, p2_in;
+  const offsetEntrada = destinoEsUPS ? 45 : 20;
 
-const offsetEntrada = destinoEsUPS ? 45 : 20;
+  if (mismoRack) {
+    // para mismo rack: la patita de entrada se calcula en función de salirPorDerecha
+    // (la patita del destino debe apuntar hacia afuera del rack)
+    p2 = {
+      x: salirPorDerecha ? destino.x + wDestino : destino.x,
+      y: destino.y + (destino.isUPS ? 30 : 14)
+    };
+    // patita del destino: extender hacia afuera (no hacia el interior)
+    p2_in = {
+      x: salirPorDerecha ? p2.x + offsetEntrada : p2.x - offsetEntrada,
+      y: p2.y
+    };
+  } else {
+    // distinto rack: queremos que el cable entre por el borde más lógico:
+    if (salirPorDerecha) {
+      // origen a la izquierda del destino -> entrada por izquierda del destino
+      p2 = {
+        x: destino.x,
+        y: destino.y + (destino.isUPS ? 30 : 14)
+      };
+      // patita: salir hacia afuera desde la izquierda (hacia la izquierda)
+      p2_in = {
+        x: p2.x - offsetEntrada,
+        y: p2.y
+      };
+    } else {
+      // origen a la derecha del destino -> entrada por derecha del destino
+      p2 = {
+        x: destino.x + wDestino,
+        y: destino.y + (destino.isUPS ? 30 : 14)
+      };
+      // patita: salir hacia afuera desde la derecha (hacia la derecha)
+      p2_in = {
+        x: p2.x + offsetEntrada,
+        y: p2.y
+      };
+    }
+  }
 
-// SIEMPRE hacia afuera del servidor
-const p2_in = {
-  x: p2.x - offsetEntrada,
-  y: p2.y
-};
+  // -----------------------
+  // CASO ESPECIAL: destino está POR DEBAJO del punto de salida
+  // → bajar directo (sin volver a entrar al rack), luego girar horizontal y entrar.
+  // Esto evita la "reentrada" y la panza innecesaria.
+  // -----------------------
+  if (p2_in.y > p1_out.y + 2) {
+    // distancia vertical antes de girar (pequeño margin para que no pegue en el rect)
+    const verticalMargin = 12;
+    const midY = p2_in.y - verticalMargin;
 
-  // ===============================================
-  // 4) MID Y
-  // ===============================================
-  let midY = (p1_out.y + p2_in.y) / 2;
+    return `
+      M ${p1.x} ${p1.y}
+      L ${p1_out.x} ${p1_out.y}
+      L ${p1_out.x} ${midY}
+      L ${p2_in.x} ${midY}
+      L ${p2_in.x} ${p2_in.y}
+      L ${p2.x} ${p2.y}
+    `;
+  }
 
-  if (origenEsUPS && !destinoEsUPS) midY += 35;
-  if (destinoEsUPS && !origenEsUPS) midY -= 35;
-  if (origenEsUPS && destinoEsUPS) midY += 50;
+  // -----------------------
+  // Si no es el caso "destino abajo", usamos la lógica previa para calcular midY
+  // evitando panzas: mismoRack -> recto o curva suave; distintoRack -> subir/curvar según distancia
+  // -----------------------
+  let midY;
+  const diffY = Math.abs(p1_out.y - p2_in.y);
 
-  // ===============================================
-  // 5) PATH FINAL
-  // ===============================================
+  if (mismoRack) {
+    if (diffY < 25) {
+      midY = p1_out.y; // recto
+    } else {
+      midY = (p1_out.y + p2_in.y) / 2; // curvita suave
+    }
+  } else {
+    // distinto rack: decidir si subir o bajar un poco según separación horizontal
+    const dx = Math.abs(p1_out.x - p2_in.x);
+
+    if (dx < 200) {
+      // racks relativamente cercanos → pequeña compensación hacia arriba
+      midY = Math.min(p1_out.y, p2_in.y) - 20;
+    } else {
+      // racks lejanos → curva más marcada hacia arriba para evitar cruces
+      midY = Math.min(p1_out.y, p2_in.y) - 60;
+    }
+  }
+
+  // pequeñas compensaciones por UPS
+  if (origenEsUPS && !destinoEsUPS) midY += 20;
+  if (destinoEsUPS && !origenEsUPS) midY -= 20;
+  if (origenEsUPS && destinoEsUPS) midY += 40;
+
+  // -----------------------
+  // Construir path ortogonal (caso general)
+  // -----------------------
   return `
     M ${p1.x} ${p1.y}
     L ${p1_out.x} ${p1_out.y}
