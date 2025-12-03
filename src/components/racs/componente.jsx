@@ -1,5 +1,3 @@
-
-////////////la patitas son p2 in
 import React, { useState } from "react";
 import data from "./datos.json";
 import "./diagram.css";
@@ -20,7 +18,7 @@ export default function RackDiagram() {
 
   const [hoverCable, setHoverCable] = useState(null);
   const [hoverInfo, setHoverInfo] = useState(null);
-const [selectedDevice, setSelectedDevice] = useState(null);
+  const [selectedDevice, setSelectedDevice] = useState(null);
 
   // ---------------------------
   // POSICIÓN UPS — SIEMPRE ABAJO
@@ -57,17 +55,6 @@ const [selectedDevice, setSelectedDevice] = useState(null);
     return { x, y };
   }
 
-
-
-function getLadoMismoServidor(origen, destino, wOrigen, wDestino) {
-  const centroOrigen = origen.x + wOrigen / 2;
-  const centroDestino = destino.x + wDestino / 2;
-
-  // Si destino está a la derecha → usar derecha
-  // Si destino está a la izquierda → usar izquierda
-  return centroDestino > centroOrigen ? "derecha" : "izquierda";
-}
-
   // ---------------------------
   // Equipos (SW agregado)
   // ---------------------------
@@ -90,7 +77,6 @@ function getLadoMismoServidor(origen, destino, wOrigen, wDestino) {
   const equiposConSlot = racks.flatMap((rack) => {
     const eqRack = equipos
       .filter((e) => e.rack_id === rack.id)
-      // -------- Ahora priorizamos por campo "orden" si existe, luego prioridad, luego id
       .sort((a, b) => {
         const ao = a.orden ?? 9999;
         const bo = b.orden ?? 9999;
@@ -240,16 +226,10 @@ function getLadoMismoServidor(origen, destino, wOrigen, wDestino) {
   });
 
   // ============================================================
-  // NUEVA LÓGICA: AGRUPAR CABLES POR DESTINO u ORIGEN (reglas pedidas)
-  // - Si hay >1 cable con mismo destino -> grupo por destino
-  // - Else si hay >1 cable con mismo origen -> grupo por origen
-  // - Si comparte ambos (dest y origin con distintos grupos) -> PRIORIDAD DESTINO
-  // Cada grupo recibe un "nivel" para separar verticalmente.
+  // AGRUPAR CABLES POR DESTINO u ORIGEN (tu lógica previa)
   // ============================================================
-
-  // Mapas de conteo
-  const originMap = {}; // origen_id -> [cables]
-  const destMap = {}; // destino_id -> [cables]
+  const originMap = {};
+  const destMap = {};
 
   cables.forEach((c) => {
     const oId = c.origen_id ?? "__null";
@@ -262,8 +242,6 @@ function getLadoMismoServidor(origen, destino, wOrigen, wDestino) {
     destMap[dId].push(c);
   });
 
-  // Determinar groupKey para cada cable
-  // groupKey examples: "dest-2", "orig-5", "unique-<id>"
   const cableGroupKey = {};
   cables.forEach((c) => {
     const oId = c.origen_id ?? "__null";
@@ -273,7 +251,6 @@ function getLadoMismoServidor(origen, destino, wOrigen, wDestino) {
     const hasSameOrigin = (originMap[oId] && originMap[oId].length > 1);
 
     if (hasSameDest) {
-      // prioridad destino si ambos true también
       cableGroupKey[c.id] = `dest-${dId}`;
     } else if (hasSameOrigin) {
       cableGroupKey[c.id] = `orig-${oId}`;
@@ -282,23 +259,18 @@ function getLadoMismoServidor(origen, destino, wOrigen, wDestino) {
     }
   });
 
-  // Asignar niveles a cada groupKey (orden estable)
   const groupKeyList = Array.from(
     new Set(Object.values(cableGroupKey))
   );
 
   const groupLevel = {};
   groupKeyList.forEach((gk, idx) => {
-    groupLevel[gk] = idx; // nivel 0,1,2...
+    groupLevel[gk] = idx;
   });
 
-  // Parámetros de separación entre grupos
-  const GROUP_SPACING = 40; // px vertical entre grupos
-  const BASE_SAFE_Y = 720; // base que ya usabas
+  const GROUP_SPACING = 40;
+  const BASE_SAFE_Y = 720;
 
-  // ============================================================
-  // Función auxiliar para obtener cables "misma lane" (mantuvimos)
-  // ============================================================
   function getCablesSameLane(cable, all) {
     return all.filter((c) => {
       const sameOrigin =
@@ -310,6 +282,36 @@ function getLadoMismoServidor(origen, destino, wOrigen, wDestino) {
       return sameOrigin && sameOffset;
     });
   }
+
+  // ============================================================
+  // --- NUEVA LÓGICA: PUERTOS (SMALL SQUARES) POR ORIGEN -------
+  // Para cada cable determinamos si sale por la derecha o por la izquierda
+  // comparando centros (centro del destino vs centro del origen).
+  // Luego agrupamos los puertos por equipo origen y por lado.
+  // ============================================================
+  const portsMap = {}; // key = `${tipo}-${id}` -> [{side:'derecha'|'izquierda', cableId}, ...]
+
+  cables.forEach((c) => {
+    const oTipo = String(c.origen_tipo).toLowerCase();
+    const dTipo = String(c.destino_tipo).toLowerCase();
+
+    const origenEq = equiposGlobal.find(e => e.tipo === oTipo && e.id === c.origen_id);
+    const destinoEq = equiposGlobal.find(e => e.tipo === dTipo && e.id === c.destino_id);
+
+    if (!origenEq || !destinoEq) return;
+
+    const wOrigen = origenEq.isUPS ? 80 : 240;
+    const wDestino = destinoEq.isUPS ? 80 : 240;
+
+    const centroOrigen = origenEq.x + wOrigen / 2;
+    const centroDestino = destinoEq.x + wDestino / 2;
+
+    const side = centroDestino > centroOrigen ? "derecha" : "izquierda";
+
+    const key = `${oTipo}-${c.origen_id}`;
+    if (!portsMap[key]) portsMap[key] = [];
+    portsMap[key].push({ side, cableId: c.id });
+  });
 
   // ============================================================
   // RENDER
@@ -367,270 +369,320 @@ function getLadoMismoServidor(origen, destino, wOrigen, wDestino) {
         ))}
 
         {/* EQUIPOS */}
-        {equiposGlobal.map((eq) => {
-          const width = eq.tipo === "ups" ? 80 : 240;
-          const height = eq.tipo === "ups" ? 60 : 28;
+       {equiposGlobal.map((eq) => {
+  const width = eq.tipo === "ups" ? 80 : 240;
+  const height = eq.tipo === "ups" ? 60 : 28;
+
+  // Buscar puertos para este equipo
+  const key = `${eq.tipo}-${eq.id}`;
+  const ports = portsMap[key] || [];
+
+  // separar por lado
+  const portsLeft = ports.filter(p => p.side === "izquierda");
+  const portsRight = ports.filter(p => p.side === "derecha");
+
+  // parámetros visuales de puertos
+  const portSize = 6;
+  const portGap = 4;            // espacio entre puertos apilados
+  const portYOffsetStart = 6;   // desde el top del rect
+
+  return (
+    <g
+      key={eq.id}
+      className={`equipo equipo-${eq.tipo}`}
+      onClick={() => {
+        if (selectedDevice?.id === eq.id && selectedDevice?.tipo === eq.tipo) {
+          setSelectedDevice(null);
+        } else {
+          setSelectedDevice({ id: eq.id, tipo: eq.tipo });
+        }
+      }}
+      style={{ cursor: "pointer" }}
+    >
+      <rect
+        className="equipo-rect"
+        x={eq.x}
+        y={eq.y}
+        width={width}
+        height={height}
+        rx={eq.tipo === "ups" ? 10 : 4}
+        stroke={selectedDevice?.id === eq.id && selectedDevice?.tipo === eq.tipo ? "#00eaff" : undefined}
+        strokeWidth={selectedDevice?.id === eq.id && selectedDevice?.tipo === eq.tipo ? 3 : 1}
+      />
+
+      <text
+        className="equipo-label"
+        x={eq.x + width / 2}
+        y={eq.y + height / 2 + 4}
+      >
+        {eq.nombre}
+      </text>
+
+      {/* -------------------------------------- */}
+      {/*   PUERTOS IZQUIERDA - CON CENTRADO     */}
+      {/* -------------------------------------- */}
+      {(() => {
+        const total = portsLeft.length;
+        return portsLeft.map((p, idx) => {
+
+          const px = eq.x + 2; // dentro del rectángulo
+
+          // si es 1 solo → centrado verticalmente
+          const py = total === 1
+            ? eq.y + height / 2 - portSize / 2
+            : eq.y + portYOffsetStart + idx * (portSize + portGap);
 
           return (
-           <g
-  key={eq.id}
-  className={`equipo equipo-${eq.tipo}`}
-  onClick={() => {
-    // Si clickeo el mismo aparato → deseleccionar
-    if (selectedDevice?.id === eq.id && selectedDevice?.tipo === eq.tipo) {
-      setSelectedDevice(null);
-    } else {
-      setSelectedDevice({ id: eq.id, tipo: eq.tipo });
-    }
-  }}
-  style={{ cursor: "pointer" }}
->
-  <rect
-    className="equipo-rect"
-    x={eq.x}
-    y={eq.y}
-    width={width}
-    height={height}
-    rx={eq.tipo === "ups" ? 10 : 4}
-    stroke={selectedDevice?.id === eq.id && selectedDevice?.tipo === eq.tipo ? "#00eaff" : undefined}
-    strokeWidth={selectedDevice?.id === eq.id && selectedDevice?.tipo === eq.tipo ? 3 : 1}
-  />
-  <text
-    className="equipo-label"
-    x={eq.x + width / 2}
-    y={eq.y + height / 2 + 4}
-  >
-    {eq.nombre}
-  </text>
-</g>
+            <rect
+              key={`port-left-${p.cableId}`}
+              x={px}
+              y={py}
+              width={portSize}
+              height={portSize}
+              rx="1"
+              ry="1"
+              fill="#222"
+              stroke="#fff"
+              strokeWidth="1"
+              onMouseEnter={(e) => {
+                const cable = cables.find(c => c.id === p.cableId);
+                setHoverInfo({ x: e.clientX + 12, y: e.clientY + 12 });
+                setHoverCable({ main: cable, group: [cable] });
+              }}
+              onMouseLeave={() => {
+                setHoverInfo(null);
+                setHoverCable(null);
+              }}
+            />
           );
-        })}
+        });
+      })()}
+
+      {/* -------------------------------------- */}
+      {/*   PUERTOS DERECHA - CON CENTRADO       */}
+      {/* -------------------------------------- */}
+      {(() => {
+        const total = portsRight.length;
+        return portsRight.map((p, idx) => {
+
+          const px = eq.x + width - portSize - 2; // dentro del rectángulo
+
+          // si es 1 solo → centrado verticalmente
+          const py = total === 1
+            ? eq.y + height / 2 - portSize / 2
+            : eq.y + portYOffsetStart + idx * (portSize + portGap);
+
+          return (
+            <rect
+              key={`port-right-${p.cableId}`}
+              x={px}
+              y={py}
+              width={portSize}
+              height={portSize}
+              rx="1"
+              ry="1"
+              fill="#222"
+              stroke="#fff"
+              strokeWidth="1"
+              onMouseEnter={(e) => {
+                const cable = cables.find(c => c.id === p.cableId);
+                setHoverInfo({ x: e.clientX + 12, y: e.clientY + 12 });
+                setHoverCable({ main: cable, group: [cable] });
+              }}
+              onMouseLeave={() => {
+                setHoverInfo(null);
+                setHoverCable(null);
+              }}
+            />
+          );
+        });
+      })()}
+
+    </g>
+  );
+})}
 
         {/* CABLES */}
-       {cables
-  .filter(c => {
-    if (!selectedDevice) return true;
+        {cables
+          .filter(c => {
+            if (!selectedDevice) return true;
 
-    const isOrigin = (c.origen_id === selectedDevice.id && c.origen_tipo === selectedDevice.tipo);
-    const isDest = (c.destino_id === selectedDevice.id && c.destino_tipo === selectedDevice.tipo);
+            const isOrigin = (c.origen_id === selectedDevice.id && c.origen_tipo === selectedDevice.tipo);
+            const isDest = (c.destino_id === selectedDevice.id && c.destino_tipo === selectedDevice.tipo);
 
-    return isOrigin || isDest;
-  })
+            return isOrigin || isDest;
+          })
 
-  // **** FILTRAR CABLES QUE APUNTAN A RACKS ****
-  .filter(
-    (c) =>
-      String(c.origen_tipo).toLowerCase() !== "rack" &&
-      String(c.destino_tipo).toLowerCase() !== "rack"
-  )
+          // **** FILTRAR CABLES QUE APUNTAN A RACKS ****
+          .filter(
+            (c) =>
+              String(c.origen_tipo).toLowerCase() !== "rack" &&
+              String(c.destino_tipo).toLowerCase() !== "rack"
+          )
 
-  .map((cable) => {
-    const o = cable.origen_tipo?.toLowerCase();
-    const d = cable.destino_tipo?.toLowerCase();
+          .map((cable) => {
+            const o = cable.origen_tipo?.toLowerCase();
+            const d = cable.destino_tipo?.toLowerCase();
 
-    const origen = equiposGlobal.find(
-      (e) => e.tipo === o && e.id === cable.origen_id
-    );
-    const destino = equiposGlobal.find(
-      (e) => e.tipo === d && e.id === cable.destino_id
-    );
+            const origen = equiposGlobal.find(
+              (e) => e.tipo === o && e.id === cable.origen_id
+            );
+            const destino = equiposGlobal.find(
+              (e) => e.tipo === d && e.id === cable.destino_id
+            );
 
-    if (!origen || !destino) return null;
+            if (!origen || !destino) return null;
 
-    // Anchos reales
-    const wOrigen = origen.isUPS ? 80 : 240;
-    const wDestino = destino.isUPS ? 80 : 240;
+            const wOrigen = origen.isUPS ? 80 : 240;
+            const wDestino = destino.isUPS ? 80 : 240;
 
-    // ===========================================
-    // FUNCIÓN NUEVA PARA MISMO SERVIDOR
-    // ===========================================
-    function getLadoMismoServidor(origen, destino, wOrigen, wDestino) {
-      const centroOrigen = origen.x + wOrigen / 2;
-      const centroDestino = destino.x + wDestino / 2;
-      return centroDestino > centroOrigen ? "derecha" : "izquierda";
-    }
+            function getLadoMismoServidor(origen, destino, wOrigen, wDestino) {
+              const centroOrigen = origen.x + wOrigen / 2;
+              const centroDestino = destino.x + wDestino / 2;
+              return centroDestino > centroOrigen ? "derecha" : "izquierda";
+            }
 
-    // ===========================================
-    // NUEVO SISTEMA DE RUTEO ORTOGONAL
-    // ===========================================
+            function computeCablePath(origen, destino, wOrigen, wDestino) {
+              const mismoRack = origen.rack_id === destino.rack_id;
+              const origenEsUPS = origen.tipo === "ups";
+              const destinoEsUPS = destino.tipo === "ups";
 
-// --- Reemplazar computeCablePath por esta versión ---
-function computeCablePath(origen, destino, wOrigen, wDestino) {
-  const mismoRack = origen.rack_id === destino.rack_id;
-  const origenEsUPS = origen.tipo === "ups";
-  const destinoEsUPS = destino.tipo === "ups";
+              const centroOrigen = origen.x + wOrigen / 2;
+              const centroDestino = destino.x + wDestino / 2;
 
-  // centros para decidir izquierda/derecha
-  const centroOrigen = origen.x + wOrigen / 2;
-  const centroDestino = destino.x + wDestino / 2;
+              let salirPorDerecha = centroOrigen < centroDestino;
 
-  // por defecto: si origen está a la izquierda -> salir por derecha
-  let salirPorDerecha = centroOrigen < centroDestino;
+              if (origen.id === destino.id && origen.tipo === destino.tipo) {
+                salirPorDerecha = (origen.x + wOrigen / 2) < (destino.x + wDestino / 2);
+              }
 
-  // si es el mismo equipo, mantener la lógica local
-  if (origen.id === destino.id && origen.tipo === destino.tipo) {
-    salirPorDerecha = (origen.x + wOrigen / 2) < (destino.x + wDestino / 2);
-  }
+              const p1 = {
+                x: salirPorDerecha ? origen.x + wOrigen : origen.x,
+                y: origen.y + (origen.isUPS ? 30 : 14)
+              };
 
-  // -----------------------
-  // Puntos de salida (origen)
-  // -----------------------
-  const p1 = {
-    x: salirPorDerecha ? origen.x + wOrigen : origen.x,
-    y: origen.y + (origen.isUPS ? 30 : 14)
-  };
+              const offsetSalida = origenEsUPS ? 45 : 20;
+              const p1_out = {
+                x: salirPorDerecha ? p1.x + offsetSalida : p1.x - offsetSalida,
+                y: p1.y
+              };
 
-  const offsetSalida = origenEsUPS ? 45 : 20;
-  const p1_out = {
-    x: salirPorDerecha ? p1.x + offsetSalida : p1.x - offsetSalida,
-    y: p1.y
-  };
+              let p2, p2_in;
+              const offsetEntrada = destinoEsUPS ? 45 : 20;
 
-  // -----------------------
-  // Puntos de entrada (destino) y patita p2_in
-  // -----------------------
-  let p2, p2_in;
-  const offsetEntrada = destinoEsUPS ? 45 : 20;
+              if (mismoRack) {
+                p2 = {
+                  x: salirPorDerecha ? destino.x + wDestino : destino.x,
+                  y: destino.y + (destino.isUPS ? 30 : 14)
+                };
+                p2_in = {
+                  x: salirPorDerecha ? p2.x + offsetEntrada : p2.x - offsetEntrada,
+                  y: p2.y
+                };
+              } else {
+                if (salirPorDerecha) {
+                  p2 = {
+                    x: destino.x,
+                    y: destino.y + (destino.isUPS ? 30 : 14)
+                  };
+                  p2_in = {
+                    x: p2.x - offsetEntrada,
+                    y: p2.y
+                  };
+                } else {
+                  p2 = {
+                    x: destino.x + wDestino,
+                    y: destino.y + (destino.isUPS ? 30 : 14)
+                  };
+                  p2_in = {
+                    x: p2.x + offsetEntrada,
+                    y: p2.y
+                  };
+                }
+              }
 
-  if (mismoRack) {
-    // para mismo rack: la patita de entrada se calcula en función de salirPorDerecha
-    // (la patita del destino debe apuntar hacia afuera del rack)
-    p2 = {
-      x: salirPorDerecha ? destino.x + wDestino : destino.x,
-      y: destino.y + (destino.isUPS ? 30 : 14)
-    };
-    // patita del destino: extender hacia afuera (no hacia el interior)
-    p2_in = {
-      x: salirPorDerecha ? p2.x + offsetEntrada : p2.x - offsetEntrada,
-      y: p2.y
-    };
-  } else {
-    // distinto rack: queremos que el cable entre por el borde más lógico:
-    if (salirPorDerecha) {
-      // origen a la izquierda del destino -> entrada por izquierda del destino
-      p2 = {
-        x: destino.x,
-        y: destino.y + (destino.isUPS ? 30 : 14)
-      };
-      // patita: salir hacia afuera desde la izquierda (hacia la izquierda)
-      p2_in = {
-        x: p2.x - offsetEntrada,
-        y: p2.y
-      };
-    } else {
-      // origen a la derecha del destino -> entrada por derecha del destino
-      p2 = {
-        x: destino.x + wDestino,
-        y: destino.y + (destino.isUPS ? 30 : 14)
-      };
-      // patita: salir hacia afuera desde la derecha (hacia la derecha)
-      p2_in = {
-        x: p2.x + offsetEntrada,
-        y: p2.y
-      };
-    }
-  }
+              if (p2_in.y > p1_out.y + 2) {
+                const verticalMargin = 12;
+                const midY = p2_in.y - verticalMargin;
 
-  // -----------------------
-  // CASO ESPECIAL: destino está POR DEBAJO del punto de salida
-  // → bajar directo (sin volver a entrar al rack), luego girar horizontal y entrar.
-  // Esto evita la "reentrada" y la panza innecesaria.
-  // -----------------------
-  if (p2_in.y > p1_out.y + 2) {
-    // distancia vertical antes de girar (pequeño margin para que no pegue en el rect)
-    const verticalMargin = 12;
-    const midY = p2_in.y - verticalMargin;
+                return `
+                  M ${p1.x} ${p1.y}
+                  L ${p1_out.x} ${p1_out.y}
+                  L ${p1_out.x} ${midY}
+                  L ${p2_in.x} ${midY}
+                  L ${p2_in.x} ${p2_in.y}
+                  L ${p2.x} ${p2.y}
+                `;
+              }
 
-    return `
-      M ${p1.x} ${p1.y}
-      L ${p1_out.x} ${p1_out.y}
-      L ${p1_out.x} ${midY}
-      L ${p2_in.x} ${midY}
-      L ${p2_in.x} ${p2_in.y}
-      L ${p2.x} ${p2.y}
-    `;
-  }
+              let midY;
+              const diffY = Math.abs(p1_out.y - p2_in.y);
 
-  // -----------------------
-  // Si no es el caso "destino abajo", usamos la lógica previa para calcular midY
-  // evitando panzas: mismoRack -> recto o curva suave; distintoRack -> subir/curvar según distancia
-  // -----------------------
-  let midY;
-  const diffY = Math.abs(p1_out.y - p2_in.y);
+              if (mismoRack) {
+                if (diffY < 25) {
+                  midY = p1_out.y;
+                } else {
+                  midY = (p1_out.y + p2_in.y) / 2;
+                }
+              } else {
+                const dx = Math.abs(p1_out.x - p2_in.x);
 
-  if (mismoRack) {
-    if (diffY < 25) {
-      midY = p1_out.y; // recto
-    } else {
-      midY = (p1_out.y + p2_in.y) / 2; // curvita suave
-    }
-  } else {
-    // distinto rack: decidir si subir o bajar un poco según separación horizontal
-    const dx = Math.abs(p1_out.x - p2_in.x);
+                if (dx < 200) {
+                  midY = Math.min(p1_out.y, p2_in.y) - 20;
+                } else {
+                  midY = Math.min(p1_out.y, p2_in.y) - 60;
+                }
+              }
 
-    if (dx < 200) {
-      // racks relativamente cercanos → pequeña compensación hacia arriba
-      midY = Math.min(p1_out.y, p2_in.y) - 20;
-    } else {
-      // racks lejanos → curva más marcada hacia arriba para evitar cruces
-      midY = Math.min(p1_out.y, p2_in.y) - 60;
-    }
-  }
+              if (origenEsUPS && !destinoEsUPS) midY += 20;
+              if (destinoEsUPS && !origenEsUPS) midY -= 20;
+              if (origenEsUPS && destinoEsUPS) midY += 40;
 
-  // pequeñas compensaciones por UPS
-  if (origenEsUPS && !destinoEsUPS) midY += 20;
-  if (destinoEsUPS && !origenEsUPS) midY -= 20;
-  if (origenEsUPS && destinoEsUPS) midY += 40;
+              return `
+                M ${p1.x} ${p1.y}
+                L ${p1_out.x} ${p1_out.y}
+                L ${p1_out.x} ${midY}
+                L ${p2_in.x} ${midY}
+                L ${p2_in.x} ${p2_in.y}
+                L ${p2.x} ${p2.y}
+              `;
+            }
 
-  // -----------------------
-  // Construir path ortogonal (caso general)
-  // -----------------------
-  return `
-    M ${p1.x} ${p1.y}
-    L ${p1_out.x} ${p1_out.y}
-    L ${p1_out.x} ${midY}
-    L ${p2_in.x} ${midY}
-    L ${p2_in.x} ${p2_in.y}
-    L ${p2.x} ${p2.y}
-  `;
-}
+            const path = computeCablePath(origen, destino, wOrigen, wDestino);
 
-    // CALCULAR PATH FINAL
-    const path = computeCablePath(origen, destino, wOrigen, wDestino);
+            const sameLane = getCablesSameLane(cable, cables);
 
-    const sameLane = getCablesSameLane(cable, cables);
-
-    return (
-      <g
-        key={cable.id}
-        onMouseEnter={(e) => {
-          setHoverCable({ main: cable, group: sameLane });
-          setHoverInfo({
-            x: e.clientX + 20,
-            y: e.clientY + 20,
-          });
-        }}
-        onMouseLeave={() => {
-          setHoverCable(null);
-          setHoverInfo(null);
-        }}
-      >
-        <path
-          d={path}
-          stroke={getCableColor(cable)}
-          strokeWidth="3"
-          fill="none"
-        />
-        {/* zona hover grande */}
-        <path
-          d={path}
-          stroke="transparent"
-          strokeWidth="10"
-          fill="none"
-        />
-      </g>
-    );
-  })}
+            return (
+              <g
+                key={cable.id}
+                onMouseEnter={(e) => {
+                  setHoverCable({ main: cable, group: sameLane });
+                  setHoverInfo({
+                    x: e.clientX + 20,
+                    y: e.clientY + 20,
+                  });
+                }}
+                onMouseLeave={() => {
+                  setHoverCable(null);
+                  setHoverInfo(null);
+                }}
+              >
+                <path
+                  d={path}
+                  stroke={getCableColor(cable)}
+                  strokeWidth="3"
+                  fill="none"
+                />
+                {/* zona hover grande */}
+                <path
+                  d={path}
+                  stroke="transparent"
+                  strokeWidth="10"
+                  fill="none"
+                />
+              </g>
+            );
+          })}
 
       </svg>
 
